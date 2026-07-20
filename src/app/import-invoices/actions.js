@@ -1,9 +1,9 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
-const prisma = new PrismaClient();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -88,6 +88,7 @@ export async function createImportInvoice(formData) {
       });
     });
 
+    revalidatePath("/", "layout");
     return { success: true, message: "Invoice created", invoice };
   } catch (error) {
     console.error("createImportInvoice error:", error);
@@ -158,6 +159,7 @@ export async function lockInvoiceHeader(invoiceId) {
       return { alreadyLocked: false, ...totals };
     });
 
+    revalidatePath("/", "layout");
     return { success: true, message: "Invoice header locked and inventory updated.", result };
   } catch (error) {
     console.error("lockInvoiceHeader error:", error);
@@ -271,6 +273,7 @@ export async function addLineToInvoice(data) {
       return { line, newTotals };
     });
 
+    revalidatePath("/", "layout");
     return { success: true, message: "Line added successfully.", ...result };
   } catch (error) {
     console.error("addLineToInvoice error:", error);
@@ -395,6 +398,7 @@ export async function updateInvoiceLine(data) {
       return { newTotals };
     });
 
+    revalidatePath("/", "layout");
     return { success: true, message: "Line updated successfully.", ...result };
   } catch (error) {
     console.error("updateInvoiceLine error:", error);
@@ -449,6 +453,7 @@ export async function deleteInvoiceLine(lineId) {
       return { newTotals };
     });
 
+    revalidatePath("/", "layout");
     return { success: true, message: "Line deleted.", ...result };
   } catch (error) {
     console.error("deleteInvoiceLine error:", error);
@@ -474,8 +479,21 @@ export async function updateInvoiceFooter(data) {
     const { invoiceId, transportationCost, amountPaid } = parsed.data;
 
     const result = await prisma.$transaction(async (tx) => {
-      const invoice = await tx.importInvoice.findUnique({ where: { id: invoiceId } });
+      const invoice = await tx.importInvoice.findUnique({
+        where: { id: invoiceId },
+        include: { lines: true },
+      });
       if (!invoice) throw new Error("Invoice not found.");
+
+      // Guardrail: compute what the new total would be BEFORE writing anything
+      const linesSubtotal = invoice.lines.reduce(
+        (sum, l) => sum + parseFloat(l.purchasePrice) * l.quantity,
+        0
+      );
+      const projectedTotal = linesSubtotal + transportationCost;
+      if (amountPaid > projectedTotal) {
+        throw new Error("Paid amount cannot exceed the total invoice value.");
+      }
 
       const oldDebt = parseFloat(invoice.debtBalance);
 
@@ -497,6 +515,7 @@ export async function updateInvoiceFooter(data) {
       return { newTotals };
     });
 
+    revalidatePath("/", "layout");
     return { success: true, message: "Invoice footer updated.", ...result };
   } catch (error) {
     console.error("updateInvoiceFooter error:", error);

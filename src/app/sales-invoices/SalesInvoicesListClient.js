@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Search, FileText, ChevronRight, Loader2 } from "lucide-react";
-import { searchBySerial, searchSalesInvoices } from "./actions";
+import { searchSalesBySerial, searchSalesInvoices } from "./actions";
 
 const STATUS_STYLES = {
   PAID: "bg-green-100 text-green-700",
@@ -33,7 +33,7 @@ export default function SalesInvoicesListClient({ invoices: initialInvoices }) {
 
     startTransition(async () => {
       // First try serial number lookup
-      const serialRes = await searchBySerial(searchQuery.trim());
+      const serialRes = await searchSalesBySerial(searchQuery.trim());
       if (serialRes.success) {
         setSerialResult(serialRes);
         setInvoices([]);

@@ -1,9 +1,9 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
-const prisma = new PrismaClient();
 
 // Zod Schema for validation
 const ProductSchema = z.object({
@@ -37,8 +37,8 @@ export async function createProduct(formData) {
       },
     });
 
-    return {
-      success: true,
+    revalidatePath("/", "layout");
+    return { success: true,
       message: "Product created successfully",
       product: newProduct,
     };
@@ -96,8 +96,8 @@ export async function deleteProduct(productId) {
         where: { id: productId },
         data: { isArchived: true },
       });
-      return {
-        success: true,
+      revalidatePath("/", "layout");
+    return { success: true,
         message: "Product archived because it has historical batches.",
         archived: true,
       };
@@ -108,8 +108,8 @@ export async function deleteProduct(productId) {
       where: { id: productId },
     });
 
-    return {
-      success: true,
+    revalidatePath("/", "layout");
+    return { success: true,
       message: "Product permanently deleted.",
       archived: false,
     };
@@ -135,7 +135,6 @@ export async function getProductBatches(productId) {
       where: { productId },
       orderBy: { entryDate: "desc" },
     });
-
     return { success: true, batches };
   } catch (error) {
     console.error("Failed to fetch product batches:", error);

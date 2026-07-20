@@ -3,7 +3,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -103,6 +102,8 @@ model SerialNumber {
   importInvoiceLineId String
   isSold              Boolean @default(false)
   isReturned          Boolean @default(false)
+  isAdjusted          Boolean @default(false)
+  adjustmentReason    String?
 
   importInvoiceLine ImportInvoiceLine @relation(fields: [importInvoiceLineId], references: [id], onDelete: Restrict)
 
@@ -128,8 +129,9 @@ model Batch {
   supplier          Supplier          @relation(fields: [supplierId], references: [id], onDelete: Restrict)
   importInvoiceLine ImportInvoiceLine @relation(fields: [importInvoiceLineId], references: [id], onDelete: Restrict)
 
-  salesLines SalesInvoiceLine[]
-  quickSales QuickSale[]
+  salesLines           SalesInvoiceLine[]
+  quickSales           QuickSale[]
+  inventoryAdjustments InventoryAdjustment[]
 }
 
 // ─────────────────────────────────────────────
@@ -201,4 +203,48 @@ model QuickSale {
   isReturned            Boolean  @default(false)
 
   batch Batch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+}
+
+// ---------------------------------------------
+// INVENTORY ADJUSTMENTS (Phase 6)
+// ---------------------------------------------
+
+model InventoryAdjustment {
+  id                    String   @id @default(uuid())
+  batchId               String
+  quantity              Int
+  reason                String // DAMAGED | LOST | INTERNAL_USE | AUDIT_CORRECTION
+  purchasePriceSnapshot Decimal  @db.Decimal(10, 2)
+  financialLoss         Decimal  @db.Decimal(10, 2)
+  adjustedSerials       String[]
+  createdAt             DateTime @default(now())
+
+  batch Batch @relation(fields: [batchId], references: [id], onDelete: Restrict)
+}
+
+// ---------------------------------------------
+// FINANCIAL CLOSING & REPORTING (Phase 7)
+// ---------------------------------------------
+
+model MonthlyFinancialReport {
+  id                     String   @id @default(uuid())
+  closingMonthId         String   @unique // e.g. '2026-06'
+  totalRevenue           Decimal  @db.Decimal(10, 2)
+  totalCOGS              Decimal  @db.Decimal(10, 2)
+  totalLogisticsExpenses Decimal  @db.Decimal(10, 2)
+  totalAdjustmentLosses  Decimal  @db.Decimal(10, 2)
+  finalNetProfit         Decimal  @db.Decimal(10, 2)
+  closedAt               DateTime @default(now())
+}
+
+model TransactionLedger {
+  id                  String   @id @default(uuid())
+  type                String // 'RETROACTIVE_RETURN_SALES', 'RETROACTIVE_RETURN_QUICK', 'ADJUSTMENT_POST_CLOSE'
+  referenceId         String // Original invoice/sale ID
+  deltaRevenue        Decimal  @default(0) @db.Decimal(10, 2)
+  deltaCOGS           Decimal  @default(0) @db.Decimal(10, 2)
+  deltaLogistics      Decimal  @default(0) @db.Decimal(10, 2)
+  deltaAdjustmentLoss Decimal  @default(0) @db.Decimal(10, 2)
+  description         String?
+  createdAt           DateTime @default(now())
 }

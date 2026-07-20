@@ -1,9 +1,9 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
-const prisma = new PrismaClient();
 
 /**
  * Returns all batches currently in stock, grouped with supplier and product info.
@@ -156,8 +156,8 @@ export async function processReturn(data) {
       return { supplierReturn, costDeducted, newInvoiceTotal, newDebt };
     });
 
-    return {
-      success: true,
+    revalidatePath("/", "layout");
+    return { success: true,
       message: `Return processed. $${result.costDeducted.toFixed(2)} deducted from invoice and supplier debt.`,
       result,
     };

@@ -4,7 +4,7 @@ import { useState, useTransition, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus, Lock, Unlock, Trash2, Save, Loader2, ChevronLeft,
-  Package, AlertTriangle, CheckCircle, DollarSign
+  Package, AlertTriangle, CheckCircle, DollarSign, ArrowLeft
 } from "lucide-react";
 import Link from "next/link";
 import AddLineModal from "./AddLineModal";
@@ -21,8 +21,7 @@ const STATUS_STYLES = {
   UNPAID: "bg-red-100 text-red-700 border-red-200",
 };
 
-export default function InvoiceDetail({ invoice: initial, products }) {
-  const [invoice, setInvoice] = useState(initial);
+export default function InvoiceDetail({ invoice, products }) {
   const [showAddLine, setShowAddLine] = useState(false);
   const [savingFooter, setSavingFooter] = useState(false);
   const [lockingHeader, setLockingHeader] = useState(false);
@@ -86,10 +85,15 @@ export default function InvoiceDetail({ invoice: initial, products }) {
     });
     if (result.success) {
       showFeedback("Line updated. Totals recalculated.");
-      setEditingLineId(null);
       router.refresh();
+      setEditingLineId(null);
     } else {
       showFeedback(result.message, true);
+      setLineEdits({
+        quantity: line.quantity,
+        purchasePrice: parseFloat(line.purchasePrice),
+        retailPrice: parseFloat(line.retailPrice),
+      });
     }
     setSavingLineId(null);
   };
@@ -121,6 +125,10 @@ export default function InvoiceDetail({ invoice: initial, products }) {
       router.refresh();
     } else {
       showFeedback(result.message, true);
+      setFooterValues({
+        transportationCost: parseFloat(invoice.transportationCost),
+        amountPaid: parseFloat(invoice.amountPaid),
+      });
     }
     setSavingFooter(false);
   };
@@ -128,20 +136,31 @@ export default function InvoiceDetail({ invoice: initial, products }) {
   const linesTotal = invoice.lines.reduce(
     (sum, l) => sum + parseFloat(l.purchasePrice) * l.quantity, 0
   );
-  const computedTotal = linesTotal + parseFloat(invoice.transportationCost);
-  const computedDebt = Math.max(0, computedTotal - parseFloat(invoice.amountPaid));
+  const computedTotal = linesTotal + parseFloat(footerValues.transportationCost || 0);
+  const computedDebt = Math.max(0, computedTotal - parseFloat(footerValues.amountPaid || 0));
 
   return (
     <div className="min-h-screen bg-gray-50/50 p-4 md:p-8">
       <div className="max-w-5xl mx-auto space-y-5">
 
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <Link href="/import-invoices" className="flex items-center gap-1 hover:text-gray-700">
-            <ChevronLeft className="w-4 h-4" /> Import Invoices
-          </Link>
-          <span>/</span>
-          <span className="font-mono text-emerald-700 font-medium">{invoice.invoiceNumber}</span>
+        {/* Header / Back */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/import-invoices"
+              className="p-2 rounded-lg bg-white border border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                Invoice <span className="text-emerald-700">{invoice.invoiceNumber}</span>
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Manage products, serials, and supplier costs
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Global feedback */}
@@ -164,9 +183,8 @@ export default function InvoiceDetail({ invoice: initial, products }) {
                 <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Invoice #</span>
                 <span className="font-mono text-lg font-bold text-gray-900">{invoice.invoiceNumber}</span>
                 <span
-                  className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-                    STATUS_STYLES[invoice.status] || "bg-gray-100 text-gray-600"
-                  }`}
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${STATUS_STYLES[invoice.status] || "bg-gray-100 text-gray-600"
+                    }`}
                 >
                   {invoice.status}
                 </span>
@@ -243,9 +261,8 @@ export default function InvoiceDetail({ invoice: initial, products }) {
                     return (
                       <tr
                         key={line.id}
-                        className={`transition-colors ${
-                          line.isLocked ? "bg-amber-50/40" : "hover:bg-gray-50/50"
-                        }`}
+                        className={`transition-colors ${line.isLocked ? "bg-amber-50/40" : "hover:bg-gray-50/50"
+                          }`}
                       >
                         <td className="px-5 py-3 font-medium text-gray-900">
                           <div className="flex items-center gap-2">
@@ -423,8 +440,9 @@ export default function InvoiceDetail({ invoice: initial, products }) {
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="number"
-                  step="0.01"
                   min="0"
+                  max={computedTotal}
+                  step="0.01"
                   value={footerValues.amountPaid}
                   onChange={(e) =>
                     setFooterValues((p) => ({ ...p, amountPaid: e.target.value }))
@@ -481,7 +499,7 @@ export default function InvoiceDetail({ invoice: initial, products }) {
           invoiceId={invoice.id}
           products={products}
           onClose={() => setShowAddLine(false)}
-          onLineAdded={() => { setShowAddLine(false); router.refresh(); }}
+          onLineAdded={() => { router.refresh(); setShowAddLine(false); }}
         />
       )}
     </div>

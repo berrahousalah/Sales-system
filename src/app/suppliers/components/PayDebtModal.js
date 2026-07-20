@@ -16,15 +16,15 @@ export default function PayDebtModal({ supplier, onClose }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    
+
     const paymentAmount = parseFloat(amount);
-    
+
     // Frontend overpayment prevention guardrail
     if (isNaN(paymentAmount) || paymentAmount <= 0) {
       setError("Please enter a valid amount greater than zero.");
       return;
     }
-    
+
     if (paymentAmount > totalDebt) {
       setError(`Payment amount ($${paymentAmount.toFixed(2)}) cannot exceed total outstanding debt ($${totalDebt.toFixed(2)}).`);
       return;
@@ -32,7 +32,7 @@ export default function PayDebtModal({ supplier, onClose }) {
 
     setIsPending(true);
     const result = await paySupplierDebt(supplier.id, paymentAmount.toString());
-    
+
     if (result.success) {
       alert(result.message);
       onClose();
@@ -48,14 +48,14 @@ export default function PayDebtModal({ supplier, onClose }) {
       <div className="bg-white rounded-lg shadow-xl w-full max-w-md overflow-hidden">
         <div className="flex justify-between items-center p-4 border-b">
           <h2 className="text-lg font-semibold text-gray-900">Pay Supplier Debt</h2>
-          <button 
+          <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
-        
+
         <form onSubmit={handleSubmit} className="p-4 space-y-4">
           <div className="bg-blue-50 border border-blue-100 rounded-lg p-4 mb-4">
             <p className="text-sm text-blue-800 font-medium">{supplier.name}</p>
@@ -72,7 +72,7 @@ export default function PayDebtModal({ supplier, onClose }) {
               {error}
             </div>
           )}
-          
+
           <div>
             <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-1">
               Payment Amount

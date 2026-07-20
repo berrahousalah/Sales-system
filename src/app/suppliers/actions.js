@@ -1,9 +1,9 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
-const prisma = new PrismaClient();
 
 const SupplierSchema = z.object({
   name: z.string().min(1, "Supplier name is required").trim(),
@@ -25,6 +25,7 @@ export async function createSupplier(formData) {
       data: { name: parsed.data.name },
     });
 
+    revalidatePath("/", "layout");
     return { success: true, message: "Supplier created successfully", supplier: newSupplier };
   } catch (error) {
     console.error("Failed to create supplier:", error);
@@ -132,8 +133,8 @@ export async function paySupplierDebt(supplierId, paymentAmountStr) {
         data: { totalDebt: newSupplierTotalDebt }
       });
 
-      return {
-        success: true,
+      revalidatePath("/", "layout");
+    return { success: true,
         message: `Successfully allocated $${paymentAmount} towards outstanding debt.`
       };
     });

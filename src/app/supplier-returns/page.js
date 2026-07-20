@@ -1,6 +1,7 @@
+import Link from "next/link";
 import { getAvailableStockByBatch } from "./actions";
 import SupplierReturnsClient from "./SupplierReturnsClient";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, ArrowLeft } from "lucide-react";
 
 export const metadata = {
   title: "Supplier Returns | ERP System",
@@ -17,6 +18,10 @@ export default async function SupplierReturnsPage() {
         {/* Header */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <div className="flex items-center gap-4">
+            
+            <Link href="/" className="p-2 rounded-lg bg-white border border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors" title="Back to Dashboard">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
             <div className="w-12 h-12 bg-orange-500 rounded-xl flex items-center justify-center text-white">
               <RotateCcw className="w-6 h-6" />
             </div>

@@ -1,9 +1,9 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
-const prisma = new PrismaClient();
 
 const CustomerSchema = z.object({
   name: z.string().min(1, "Customer name is required").trim(),
@@ -25,6 +25,7 @@ export async function createCustomer(formData) {
       data: { name: parsed.data.name },
     });
 
+    revalidatePath("/", "layout");
     return { success: true, message: "Customer created successfully", customer: newCustomer };
   } catch (error) {
     console.error("Failed to create customer:", error);
@@ -133,8 +134,8 @@ export async function collectCustomerPayment(customerId, paymentAmountStr) {
         data: { totalDebt: newTotalDebt },
       });
 
-      return {
-        success: true,
+      revalidatePath("/", "layout");
+    return { success: true,
         message: `Successfully collected $${paymentAmount.toFixed(2)} from customer.`,
       };
     });

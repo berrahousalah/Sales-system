@@ -1,20 +1,20 @@
 import Link from "next/link";
-import { getQuickSalesHistory, getProducts } from "./actions";
-import QuickSalesClient from "./QuickSalesClient";
-import { Zap, ArrowLeft } from "lucide-react";
+import { getInventoryAdjustments, getProducts } from "./actions";
+import InventoryAdjustmentsClient from "./InventoryAdjustmentsClient";
+import { SlidersHorizontal, ArrowLeft } from "lucide-react";
 
 export const metadata = {
-  title: "Quick Sales POS | ERP System",
-  description: "Direct over-the-counter sales with no customer tracking.",
+  title: "Inventory Adjustments | ERP System",
+  description: "Write off inventory discrepancies and log operating losses.",
 };
 
-export default async function QuickSalesPage() {
+export default async function InventoryAdjustmentsPage() {
   const [historyResult, productsResult] = await Promise.all([
-    getQuickSalesHistory(),
+    getInventoryAdjustments(),
     getProducts(),
   ]);
 
-  const history = historyResult.success ? historyResult.sales : [];
+  const history = historyResult.success ? historyResult.adjustments : [];
   const products = productsResult.success ? productsResult.products : [];
 
   return (
@@ -27,13 +27,13 @@ export default async function QuickSalesPage() {
             <Link href="/" className="p-2 rounded-lg bg-white border border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors" title="Back to Dashboard">
               <ArrowLeft className="w-5 h-5" />
             </Link>
-            <div className="w-12 h-12 bg-pink-500 rounded-xl flex items-center justify-center text-white">
-              <Zap className="w-6 h-6" />
+            <div className="w-12 h-12 bg-rose-500 rounded-xl flex items-center justify-center text-white">
+              <SlidersHorizontal className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Quick Sales POS</h1>
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Inventory Adjustments</h1>
               <p className="text-sm text-gray-500 mt-1">
-                Over-the-counter direct cash sales. No customer profiles, no debt.
+                Reconcile physical stock discrepancies and log operational losses.
               </p>
             </div>
           </div>
@@ -45,7 +45,7 @@ export default async function QuickSalesPage() {
           </div>
         )}
 
-        <QuickSalesClient history={history} products={products} />
+        <InventoryAdjustmentsClient history={history} products={products} />
       </div>
     </div>
   );

@@ -1,7 +1,8 @@
+import Link from "next/link";
 import { getSuppliers } from "./actions";
 import SuppliersTable from "./components/SuppliersTable";
 import SupplierForm from "./components/SupplierForm";
-import { Users } from "lucide-react";
+import { Users, ArrowLeft } from "lucide-react";
 
 export const metadata = {
   title: "Suppliers Management | ERP System",
@@ -20,6 +21,10 @@ export default async function SuppliersPage() {
         {/* Header Section */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <div className="flex items-center gap-4">
+            
+            <Link href="/" className="p-2 rounded-lg bg-white border border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors" title="Back to Dashboard">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
             <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center shadow-inner text-white">
               <Users className="w-6 h-6" />
             </div>

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Plus, Lock, Unlock, Trash2, Save, Loader2, ChevronLeft,
+  Plus, Lock, Unlock, Trash2, Save, Loader2, ChevronLeft, ArrowLeft,
   Package, AlertTriangle, CheckCircle, DollarSign, CornerDownLeft
 } from "lucide-react";
 import Link from "next/link";
@@ -30,12 +30,12 @@ export default function SalesInvoiceDetail({ invoice: initial, products }) {
   const [lineEdits, setLineEdits] = useState({});
   const [savingLineId, setSavingLineId] = useState(null);
   const [deletingLineId, setDeletingLineId] = useState(null);
-  
+
   const [footerValues, setFooterValues] = useState({
     deliveryCost: parseFloat(invoice.deliveryCost),
     amountPaid: parseFloat(invoice.amountPaid),
   });
-  
+
   const [globalError, setGlobalError] = useState("");
   const [globalSuccess, setGlobalSuccess] = useState("");
   const router = useRouter();
@@ -78,7 +78,7 @@ export default function SalesInvoiceDetail({ invoice: initial, products }) {
   // ── Save line edits ───────────────────────────────────────────────────────
   const handleSaveLine = async (line) => {
     setSavingLineId(line.id);
-    
+
     // Validations
     if (line.batch.importInvoiceLine?.isSerialised) {
       const delta = Number(lineEdits.quantity) - line.quantity;
@@ -100,13 +100,18 @@ export default function SalesInvoiceDetail({ invoice: initial, products }) {
       sellingPrice: parseFloat(lineEdits.sellingPrice),
       soldSerials: lineEdits.soldSerials,
     });
-    
+
     if (result.success) {
       showFeedback("Line updated. Totals recalculated.");
       setEditingLineId(null);
       router.refresh();
     } else {
       showFeedback(result.message, true);
+      setLineEdits({
+        quantity: line.quantity,
+        sellingPrice: parseFloat(line.sellingPrice),
+        soldSerials: [...line.soldSerials],
+      });
     }
     setSavingLineId(null);
   };
@@ -138,6 +143,10 @@ export default function SalesInvoiceDetail({ invoice: initial, products }) {
       router.refresh();
     } else {
       showFeedback(result.message, true);
+      setFooterValues({
+        deliveryCost: parseFloat(invoice.deliveryCost),
+        amountPaid: parseFloat(invoice.amountPaid),
+      });
     }
     setSavingFooter(false);
   };
@@ -152,13 +161,24 @@ export default function SalesInvoiceDetail({ invoice: initial, products }) {
     <div className="min-h-screen bg-gray-50/50 p-4 md:p-8">
       <div className="max-w-5xl mx-auto space-y-5">
 
-        {/* Breadcrumb */}
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <Link href="/sales-invoices" className="flex items-center gap-1 hover:text-gray-700">
-            <ChevronLeft className="w-4 h-4" /> Sales Invoices
-          </Link>
-          <span>/</span>
-          <span className="font-mono text-indigo-700 font-medium">{invoice.invoiceNumber}</span>
+        {/* Header / Back */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/sales-invoices"
+              className="p-2 rounded-lg bg-white border border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
+                Sales Invoice <span className="text-indigo-700">{invoice.invoiceNumber}</span>
+              </h1>
+              <p className="text-sm text-gray-500 mt-1">
+                Manage sale items, serials, and customer COD/debt
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Global feedback */}
@@ -181,9 +201,8 @@ export default function SalesInvoiceDetail({ invoice: initial, products }) {
                 <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Invoice #</span>
                 <span className="font-mono text-lg font-bold text-gray-900">{invoice.invoiceNumber}</span>
                 <span
-                  className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
-                    STATUS_STYLES[invoice.status] || "bg-gray-100 text-gray-600"
-                  }`}
+                  className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${STATUS_STYLES[invoice.status] || "bg-gray-100 text-gray-600"
+                    }`}
                 >
                   {invoice.status}
                 </span>
@@ -433,8 +452,9 @@ export default function SalesInvoiceDetail({ invoice: initial, products }) {
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="number"
-                  step="0.01"
                   min="0"
+                  max={computedTotal}
+                  step="0.01"
                   value={footerValues.amountPaid}
                   onChange={(e) =>
                     setFooterValues((p) => ({ ...p, amountPaid: e.target.value }))

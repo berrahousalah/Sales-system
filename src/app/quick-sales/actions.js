@@ -1,9 +1,9 @@
 "use server";
 
-import { PrismaClient } from "@prisma/client";
+import { revalidatePath } from "next/cache";
+import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 
-const prisma = new PrismaClient();
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HELPERS
@@ -124,6 +124,7 @@ export async function executeQuickSale(data) {
       return { sale };
     });
 
+    revalidatePath("/", "layout");
     return { success: true, message: "Direct POS sale executed successfully.", ...result };
   } catch (error) {
     console.error("executeQuickSale error:", error);
@@ -180,9 +181,11 @@ export async function returnQuickSale(saleId) {
       // Zero-State Unlock Trigger
       await checkAndUnlockBatchRow(tx, batchId);
 
-      return { success: true };
+      revalidatePath("/", "layout");
+    return { success: true };
     });
 
+    revalidatePath("/", "layout");
     return { success: true, message: "Item returned. Inventory and financials reversed.", ...result };
   } catch (error) {
     console.error("returnQuickSale error:", error);
@@ -233,7 +236,6 @@ export async function searchQuickSales(query) {
       include: { batch: { include: { product: true } } },
       orderBy: { saleDate: "desc" },
     });
-
     return { success: true, sales };
   } catch (error) {
     return { success: false, message: "Search failed." };

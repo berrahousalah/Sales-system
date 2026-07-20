@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { getSalesInvoices } from "./actions";
 import SalesInvoicesListClient from "./SalesInvoicesListClient";
-import { FileText, Plus } from "lucide-react";
+import { FileText, Plus, ArrowLeft } from "lucide-react";
 
 export const metadata = {
   title: "Sales Invoices | ERP System",
@@ -18,6 +18,10 @@ export default async function SalesInvoicesPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
           <div className="flex items-center gap-4">
+            
+            <Link href="/" className="p-2 rounded-lg bg-white border border-gray-200 text-gray-500 hover:text-gray-700 hover:bg-gray-50 transition-colors" title="Back to Dashboard">
+              <ArrowLeft className="w-5 h-5" />
+            </Link>
             <div className="w-12 h-12 bg-indigo-600 rounded-xl flex items-center justify-center text-white">
               <FileText className="w-6 h-6" />
             </div>
