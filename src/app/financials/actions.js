@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { serializeMonthlyFinancialReport } from "@/lib/serialize";
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -192,7 +193,7 @@ export async function executeMonthEndClose(data) {
     });
 
     revalidatePath("/", "layout");
-    return { success: true, message: `Successfully closed ${closingMonthId}.`, report: result };
+    return { success: true, message: `Successfully closed ${closingMonthId}.`, report: serializeMonthlyFinancialReport(result) };
   } catch (error) {
     console.error("Month-end close error:", error);
     return { success: false, message: error.message || "Failed to execute month-end close." };
@@ -208,7 +209,7 @@ export async function getArchivedMonths() {
     const reports = await prisma.monthlyFinancialReport.findMany({
       orderBy: { closingMonthId: "desc" },
     });
-    return { success: true, reports };
+    return { success: true, reports: reports.map(serializeMonthlyFinancialReport) };
   } catch (error) {
     return { success: false, message: "Failed to load financial archive." };
   }

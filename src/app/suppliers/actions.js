@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { serializeSupplier } from "@/lib/serialize";
 
 
 const SupplierSchema = z.object({
@@ -41,7 +42,7 @@ export async function getSuppliers() {
     const suppliers = await prisma.supplier.findMany({
       orderBy: { createdAt: "desc" },
     });
-    return { success: true, suppliers };
+    return { success: true, suppliers: suppliers.map(serializeSupplier) };
   } catch (error) {
     console.error("Failed to fetch suppliers:", error);
     return { success: false, message: "Database error: Failed to fetch suppliers" };
@@ -133,12 +134,13 @@ export async function paySupplierDebt(supplierId, paymentAmountStr) {
         data: { totalDebt: newSupplierTotalDebt }
       });
 
-      revalidatePath("/", "layout");
-    return { success: true,
+      return {
+        success: true,
         message: `Successfully allocated $${paymentAmount} towards outstanding debt.`
       };
     });
 
+    revalidatePath("/", "layout");
     return result;
   } catch (error) {
     console.error("Payment allocation failed:", error);

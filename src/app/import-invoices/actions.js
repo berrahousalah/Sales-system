@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import {
+  serializeImportInvoice,
+  serializeSupplier,
+  serializeProduct,
+} from "@/lib/serialize";
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -139,15 +144,10 @@ export async function lockInvoiceHeader(invoiceId) {
 
       // Route debt to supplier
       if (totals.debtBalance > 0) {
-        const existing = await tx.importInvoice.findUnique({ where: { id: invoiceId } });
-        const previousDebt = parseFloat(existing?.debtBalance ?? 0);
-        const delta = totals.debtBalance - previousDebt;
-        if (delta !== 0) {
-          await tx.supplier.update({
-            where: { id: invoice.supplierId },
-            data: { totalDebt: { increment: delta } },
-          });
-        }
+        await tx.supplier.update({
+          where: { id: invoice.supplierId },
+          data: { totalDebt: { increment: totals.debtBalance } },
+        });
       }
 
       // Lock header
@@ -533,7 +533,7 @@ export async function getImportInvoices() {
       orderBy: { createdAt: "desc" },
       include: { supplier: true },
     });
-    return { success: true, invoices };
+    return { success: true, invoices: invoices.map(serializeImportInvoice) };
   } catch (error) {
     console.error("getImportInvoices error:", error);
     return { success: false, message: "Failed to fetch invoices." };
@@ -557,7 +557,7 @@ export async function getImportInvoiceById(id) {
       },
     });
     if (!invoice) return { success: false, message: "Invoice not found." };
-    return { success: true, invoice };
+    return { success: true, invoice: serializeImportInvoice(invoice) };
   } catch (error) {
     console.error("getImportInvoiceById error:", error);
     return { success: false, message: "Failed to fetch invoice." };
@@ -597,7 +597,7 @@ export async function searchInvoices(query) {
       include: { supplier: true },
       orderBy: { createdAt: "desc" },
     });
-    return { success: true, invoices };
+    return { success: true, invoices: invoices.map(serializeImportInvoice) };
   } catch (error) {
     console.error("searchInvoices error:", error);
     return { success: false, message: "Search failed." };
@@ -607,7 +607,7 @@ export async function searchInvoices(query) {
 export async function getSuppliers() {
   try {
     const suppliers = await prisma.supplier.findMany({ orderBy: { name: "asc" } });
-    return { success: true, suppliers };
+    return { success: true, suppliers: suppliers.map(serializeSupplier) };
   } catch (error) {
     return { success: false, message: "Failed to fetch suppliers." };
   }
@@ -619,7 +619,7 @@ export async function getProducts() {
       where: { isArchived: false },
       orderBy: { name: "asc" },
     });
-    return { success: true, products };
+    return { success: true, products: products.map(serializeProduct) };
   } catch (error) {
     return { success: false, message: "Failed to fetch products." };
   }

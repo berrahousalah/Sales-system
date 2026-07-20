@@ -3,7 +3,7 @@
 import { useState, useTransition, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Plus, Lock, Unlock, Trash2, Save, Loader2, ChevronLeft,
+  Plus, Lock, Unlock, Trash2, Save, Loader2, ChevronLeft, X,
   Package, AlertTriangle, CheckCircle, DollarSign, ArrowLeft
 } from "lucide-react";
 import Link from "next/link";

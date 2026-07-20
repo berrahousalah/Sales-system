@@ -3,10 +3,13 @@
 import { useState } from "react";
 import { Package, RotateCcw, Search } from "lucide-react";
 import ReturnModal from "./components/ReturnModal";
+import CsvImportModal from "./components/CsvImportModal";
+import { UploadCloud } from "lucide-react";
 
 export default function SupplierReturnsClient({ batches }) {
   const [selectedBatch, setSelectedBatch] = useState(null);
   const [filterSupplier, setFilterSupplier] = useState("");
+  const [showCsvModal, setShowCsvModal] = useState(false);
 
   // Build unique supplier list for filter dropdown
   const suppliers = [...new Map(batches.map((b) => [b.supplier.id, b.supplier])).values()];
@@ -29,25 +32,36 @@ export default function SupplierReturnsClient({ batches }) {
 
   return (
     <>
-      {/* Supplier Filter */}
-      <div className="flex items-center gap-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <select
-            value={filterSupplier}
-            onChange={(e) => setFilterSupplier(e.target.value)}
-            className="pl-9 pr-8 py-2.5 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 appearance-none"
-          >
-            <option value="">All Suppliers</option>
-            {suppliers.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
+      {/* Supplier Filter & Actions */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <select
+              value={filterSupplier}
+              onChange={(e) => setFilterSupplier(e.target.value)}
+              className="pl-9 pr-8 py-2.5 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500 appearance-none"
+            >
+              <option value="">All Suppliers</option>
+              {suppliers.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          <span className="text-sm text-gray-400">{filteredBatches.length} batch(es) in stock</span>
         </div>
-        <span className="text-sm text-gray-400">{filteredBatches.length} batch(es) in stock</span>
+
+        <button
+          onClick={() => setShowCsvModal(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors text-sm font-medium shadow-sm"
+        >
+          <UploadCloud className="w-4 h-4" />
+          استيراد مخزون سابق (CSV)
+        </button>
       </div>
+
 
       {/* Batch Grid */}
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -131,11 +145,16 @@ export default function SupplierReturnsClient({ batches }) {
         </div>
       </div>
 
+      {/* Modals */}
       {selectedBatch && (
         <ReturnModal
           batch={selectedBatch}
           onClose={() => setSelectedBatch(null)}
         />
+      )}
+      
+      {showCsvModal && (
+        <CsvImportModal onClose={() => setShowCsvModal(false)} />
       )}
     </>
   );

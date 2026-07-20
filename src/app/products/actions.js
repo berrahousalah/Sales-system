@@ -133,9 +133,31 @@ export async function getProductBatches(productId) {
 
     const batches = await prisma.batch.findMany({
       where: { productId },
+      include: {
+        supplier: { select: { id: true, name: true } },
+        importInvoiceLine: {
+          select: {
+            importInvoice: { select: { invoiceNumber: true } },
+          },
+        },
+      },
       orderBy: { entryDate: "desc" },
     });
-    return { success: true, batches };
+
+    // Serialize Decimal fields to plain numbers to avoid serialization boundary issues
+    const serialized = batches.map((b) => ({
+      id: b.id,
+      supplierId: b.supplierId,
+      supplierName: b.supplier?.name ?? "Unknown",
+      invoiceNumber: b.importInvoiceLine?.importInvoice?.invoiceNumber ?? "N/A",
+      entryDate: b.entryDate.toISOString(),
+      quantityReceived: b.quantityReceived,
+      quantityRemaining: b.quantityRemaining,
+      purchasePrice: parseFloat(b.purchasePrice),
+      retailPrice: parseFloat(b.retailPrice),
+    }));
+
+    return { success: true, batches: serialized };
   } catch (error) {
     console.error("Failed to fetch product batches:", error);
     return { success: false, message: "Database error: Failed to fetch batches" };

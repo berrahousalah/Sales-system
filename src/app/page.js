@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { 
   Package, Users, Building2, Truck, FileText, Zap, 
-  SlidersHorizontal, Landmark, ArrowRight 
+  SlidersHorizontal, Landmark, ArrowRight, RotateCcw
 } from "lucide-react";
 
 export const metadata = {
@@ -64,6 +64,13 @@ const MODULES = [
     href: "/financials",
     icon: <Landmark className="w-8 h-8 text-emerald-600" />,
     bg: "bg-emerald-50 border-emerald-100",
+  },
+  {
+    title: "Supplier Returns & Stock",
+    description: "Return stock to suppliers & import initial inventory.",
+    href: "/supplier-returns",
+    icon: <RotateCcw className="w-8 h-8 text-orange-600" />,
+    bg: "bg-orange-50 border-orange-100",
   },
 ];
 

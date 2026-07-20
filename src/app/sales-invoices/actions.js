@@ -3,6 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import {
+  serializeSalesInvoice,
+  serializeCustomer,
+  serializeProduct,
+} from "@/lib/serialize";
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -524,7 +529,7 @@ export async function getSalesInvoices() {
       orderBy: { createdAt: "desc" },
       include: { customer: true },
     });
-    return { success: true, invoices };
+    return { success: true, invoices: invoices.map(serializeSalesInvoice) };
   } catch (error) {
     return { success: false, message: "Failed to fetch sales invoices." };
   }
@@ -556,7 +561,7 @@ export async function getSalesInvoiceById(id) {
       },
     });
     if (!invoice) return { success: false, message: "Sales invoice not found." };
-    return { success: true, invoice };
+    return { success: true, invoice: serializeSalesInvoice(invoice) };
   } catch (error) {
     return { success: false, message: "Failed to fetch invoice." };
   }
@@ -574,7 +579,7 @@ export async function searchSalesInvoices(query) {
       include: { customer: true },
       orderBy: { createdAt: "desc" },
     });
-    return { success: true, invoices };
+    return { success: true, invoices: invoices.map(serializeSalesInvoice) };
   } catch (error) {
     return { success: false, message: "Search failed." };
   }
@@ -649,7 +654,7 @@ export async function getAvailableSerialsForBatch(batchId) {
 export async function getCustomers() {
   try {
     const customers = await prisma.customer.findMany({ orderBy: { name: "asc" } });
-    return { success: true, customers };
+    return { success: true, customers: customers.map(serializeCustomer) };
   } catch (error) {
     return { success: false, message: "Failed to fetch customers." };
   }
@@ -661,7 +666,7 @@ export async function getProducts() {
       where: { isArchived: false, stockBalance: { gt: 0 } },
       orderBy: { name: "asc" },
     });
-    return { success: true, products };
+    return { success: true, products: products.map(serializeProduct) };
   } catch (error) {
     return { success: false, message: "Failed to fetch products." };
   }

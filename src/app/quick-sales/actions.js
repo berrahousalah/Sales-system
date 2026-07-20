@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { serializeQuickSale, serializeProduct } from "@/lib/serialize";
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -138,7 +139,7 @@ export async function executeQuickSale(data) {
 
 export async function returnQuickSale(saleId) {
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    await prisma.$transaction(async (tx) => {
       const sale = await tx.quickSale.findUnique({
         where: { id: saleId },
         include: { batch: { include: { importInvoiceLine: true } } },
@@ -180,13 +181,10 @@ export async function returnQuickSale(saleId) {
 
       // Zero-State Unlock Trigger
       await checkAndUnlockBatchRow(tx, batchId);
-
-      revalidatePath("/", "layout");
-    return { success: true };
     });
 
     revalidatePath("/", "layout");
-    return { success: true, message: "Item returned. Inventory and financials reversed.", ...result };
+    return { success: true, message: "Item returned. Inventory and financials reversed." };
   } catch (error) {
     console.error("returnQuickSale error:", error);
     return { success: false, message: error.message || "Failed to process return." };
@@ -210,7 +208,7 @@ export async function getQuickSalesHistory() {
       include: { batch: { include: { product: true } } },
       orderBy: { saleDate: "desc" },
     });
-    return { success: true, sales };
+    return { success: true, sales: sales.map(serializeQuickSale) };
   } catch (error) {
     return { success: false, message: "Failed to fetch quick sales history." };
   }
@@ -236,7 +234,7 @@ export async function searchQuickSales(query) {
       include: { batch: { include: { product: true } } },
       orderBy: { saleDate: "desc" },
     });
-    return { success: true, sales };
+    return { success: true, sales: sales.map(serializeQuickSale) };
   } catch (error) {
     return { success: false, message: "Search failed." };
   }
@@ -252,7 +250,7 @@ export async function getProducts() {
       where: { isArchived: false, stockBalance: { gt: 0 } },
       orderBy: { name: "asc" },
     });
-    return { success: true, products };
+    return { success: true, products: products.map(serializeProduct) };
   } catch (error) {
     return { success: false, message: "Failed to fetch products." };
   }

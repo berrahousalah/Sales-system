@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { serializeProduct, serializeBatch, serializeInventoryAdjustment } from "@/lib/serialize";
 
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -15,7 +16,7 @@ export async function getProducts() {
       where: { isArchived: false, stockBalance: { gt: 0 } },
       orderBy: { name: "asc" },
     });
-    return { success: true, products };
+    return { success: true, products: products.map(serializeProduct) };
   } catch (error) {
     return { success: false, message: "Failed to fetch products." };
   }
@@ -34,7 +35,12 @@ export async function getAvailableBatchesForProduct(productId) {
       },
       orderBy: { entryDate: "asc" },
     });
-    return { success: true, batches };
+    // Partial batch so we do custom serialization to match serializeBatch behavior for dates
+    const serialized = batches.map(b => ({
+      ...b,
+      entryDate: b.entryDate instanceof Date ? b.entryDate.toISOString() : b.entryDate,
+    }));
+    return { success: true, batches: serialized };
   } catch (error) {
     return { success: false, message: "Failed to fetch batches." };
   }
@@ -74,7 +80,7 @@ export async function getInventoryAdjustments() {
       },
       orderBy: { createdAt: "desc" },
     });
-    return { success: true, adjustments };
+    return { success: true, adjustments: adjustments.map(serializeInventoryAdjustment) };
   } catch (error) {
     return { success: false, message: "Failed to fetch inventory adjustments history." };
   }
@@ -142,7 +148,7 @@ export async function executeInventoryAdjustment(data) {
         });
       }
 
-      // 3. Deduct Inventory (Batch & Product)
+      // 3. Deduct Inventory (Batch & Product only)
       await tx.batch.update({
         where: { id: batchId },
         data: { quantityRemaining: { decrement: quantity } },
@@ -152,15 +158,9 @@ export async function executeInventoryAdjustment(data) {
         where: { id: batch.productId },
         data: { stockBalance: { decrement: quantity } },
       });
-
-      // Update ImportInvoiceLine so we track how many units were removed from the original pool
-      await tx.importInvoiceLine.update({
-        where: { id: batch.importInvoiceLineId },
-        data: {
-          quantitySold: { increment: quantity }, // Effectively locked from editing/returning to supplier
-          isLocked: true,
-        },
-      });
+      // NOTE: We intentionally do NOT touch ImportInvoiceLine.quantitySold or isLocked here.
+      // Adjustments are pure write-offs, not sales. Only SalesInvoiceLine / QuickSale
+      // transitions affect the sold-quantity tracker and row-lock status.
 
       // 4. Financial Loss Logging
       // The exact actual purchase price is pulled to record the true cost basis of the loss

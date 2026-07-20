@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { serializeCustomer } from "@/lib/serialize";
 
 
 const CustomerSchema = z.object({
@@ -41,7 +42,7 @@ export async function getCustomers() {
     const customers = await prisma.customer.findMany({
       orderBy: { createdAt: "desc" },
     });
-    return { success: true, customers };
+    return { success: true, customers: customers.map(serializeCustomer) };
   } catch (error) {
     console.error("Failed to fetch customers:", error);
     return { success: false, message: "Database error: Failed to fetch customers" };
@@ -134,12 +135,13 @@ export async function collectCustomerPayment(customerId, paymentAmountStr) {
         data: { totalDebt: newTotalDebt },
       });
 
-      revalidatePath("/", "layout");
-    return { success: true,
+      return {
+        success: true,
         message: `Successfully collected $${paymentAmount.toFixed(2)} from customer.`,
       };
     });
 
+    revalidatePath("/", "layout");
     return result;
   } catch (error) {
     console.error("Payment collection failed:", error);

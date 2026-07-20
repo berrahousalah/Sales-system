@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { serializeBatch } from "@/lib/serialize";
 
 
 /**
@@ -27,7 +28,7 @@ export async function getAvailableStockByBatch() {
       },
       orderBy: { entryDate: "asc" },
     });
-    return { success: true, batches };
+    return { success: true, batches: batches.map(serializeBatch) };
   } catch (error) {
     console.error("getAvailableStockByBatch error:", error);
     return { success: false, message: "Failed to fetch stock." };
@@ -164,5 +165,99 @@ export async function processReturn(data) {
   } catch (error) {
     console.error("processReturn error:", error);
     return { success: false, message: error.message || "Failed to process return." };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BULK IMPORT INITIAL STOCK (CSV)
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function bulkImportInitialStock(rows) {
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      // 1. Ensure Legacy Supplier exists
+      let legacySupplier = await tx.supplier.findFirst({
+        where: { name: "Legacy Initial Stock" }
+      });
+      if (!legacySupplier) {
+        legacySupplier = await tx.supplier.create({
+          data: { name: "Legacy Initial Stock" }
+        });
+      }
+
+      // 2. Ensure Legacy Import Invoice exists
+      let legacyInvoice = await tx.importInvoice.findFirst({
+        where: { invoiceNumber: "LEGACY-STOCK-001" }
+      });
+      if (!legacyInvoice) {
+        legacyInvoice = await tx.importInvoice.create({
+          data: {
+            invoiceNumber: "LEGACY-STOCK-001",
+            supplierId: legacySupplier.id,
+            status: "PAID",
+            isHeaderLocked: true,
+          }
+        });
+      }
+
+      // 3. Process each row
+      for (const row of rows) {
+        // a. Find or create product
+        let product = await tx.product.findFirst({
+          where: { name: { equals: row.productName, mode: 'insensitive' } }
+        });
+
+        if (!product) {
+          product = await tx.product.create({
+            data: {
+              name: row.productName,
+              stockBalance: row.availableQuantity,
+            }
+          });
+        } else {
+          // Increment stock balance
+          product = await tx.product.update({
+            where: { id: product.id },
+            data: {
+              stockBalance: { increment: row.availableQuantity }
+            }
+          });
+        }
+
+        // b. Create ImportInvoiceLine
+        const invoiceLine = await tx.importInvoiceLine.create({
+          data: {
+            importInvoiceId: legacyInvoice.id,
+            productId: product.id,
+            quantity: row.availableQuantity,
+            purchasePrice: row.purchasePrice,
+            retailPrice: row.suggestedSellingPrice,
+            isSerialised: false,
+            isLocked: false // Legacy stock batches can still be returned
+          }
+        });
+
+        // c. Create Batch
+        await tx.batch.create({
+          data: {
+            productId: product.id,
+            supplierId: legacySupplier.id,
+            importInvoiceLineId: invoiceLine.id,
+            quantityReceived: row.availableQuantity,
+            quantityRemaining: row.availableQuantity,
+            purchasePrice: row.purchasePrice,
+            retailPrice: row.suggestedSellingPrice,
+          }
+        });
+      }
+
+      return { processedCount: rows.length };
+    });
+
+    revalidatePath("/", "layout");
+    return { success: true, message: `Successfully imported ${result.processedCount} products.` };
+  } catch (error) {
+    console.error("bulkImportInitialStock error:", error);
+    return { success: false, message: error.message || "Failed to import stock." };
   }
 }
