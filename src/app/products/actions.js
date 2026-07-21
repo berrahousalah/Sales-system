@@ -182,14 +182,29 @@ export async function importProductsFromCsv(rows) {
         supplier = await tx.supplier.create({
           data: {
             name: supplierName,
-            contactPhone: "",
-            contactEmail: "",
             totalDebt: 0,
           }
         });
       }
 
-      // 2. Process each row
+      // 2. Create Master Import Invoice
+      const invoiceNumber = `CSV-INIT-${Date.now()}`;
+      const importInvoice = await tx.importInvoice.create({
+        data: {
+          invoiceNumber,
+          supplierId: supplier.id,
+          transportationCost: 0,
+          totalAmount: 0,
+          amountPaid: 0,
+          debtBalance: 0,
+          status: "PAID",
+          isHeaderLocked: true,
+        }
+      });
+
+      let totalInvoiceValue = 0;
+
+      // 3. Process each row
       for (const row of rows) {
         const { name, quantity, purchasePrice, retailPrice } = row;
         if (!name) continue; // Skip empty rows
@@ -205,17 +220,33 @@ export async function importProductsFromCsv(rows) {
         }
 
         if (parsedQty > 0) {
+          totalInvoiceValue += (parsedQty * parsedPurchase);
+
           // Increment stock
           await tx.product.update({
             where: { id: product.id },
             data: { stockBalance: { increment: parsedQty } }
           });
 
-          // Create initial batch linked to the system supplier
+          // Create Import Invoice Line
+          const invoiceLine = await tx.importInvoiceLine.create({
+            data: {
+              importInvoiceId: importInvoice.id,
+              productId: product.id,
+              quantity: parsedQty,
+              purchasePrice: parsedPurchase,
+              retailPrice: parsedRetail,
+              isSerialised: false,
+              isLocked: false,
+            }
+          });
+
+          // Create initial batch linked to the invoice line
           await tx.batch.create({
             data: {
               productId: product.id,
               supplierId: supplier.id,
+              importInvoiceLineId: invoiceLine.id,
               quantityReceived: parsedQty,
               quantityRemaining: parsedQty,
               purchasePrice: parsedPurchase,
@@ -224,6 +255,15 @@ export async function importProductsFromCsv(rows) {
           });
         }
       }
+
+      // 4. Update the Master Invoice total amounts
+      await tx.importInvoice.update({
+        where: { id: importInvoice.id },
+        data: {
+          totalAmount: totalInvoiceValue,
+          amountPaid: totalInvoiceValue, // Paid in full automatically
+        }
+      });
     });
 
     revalidatePath("/", "layout");

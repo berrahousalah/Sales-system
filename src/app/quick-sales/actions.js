@@ -115,7 +115,7 @@ export async function executeQuickSale(data) {
           sellingPrice,
           totalAmount,
           purchasePriceSnapshot: batch.purchasePrice,
-          soldSerials,
+          soldSerials: JSON.stringify(soldSerials),
           saleDate: new Date(), // Locked to exact current moment
           isReturned: false,
         },

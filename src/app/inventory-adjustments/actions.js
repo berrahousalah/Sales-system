@@ -175,7 +175,7 @@ export async function executeInventoryAdjustment(data) {
           reason,
           purchasePriceSnapshot,
           financialLoss,
-          adjustedSerials,
+          adjustedSerials: JSON.stringify(adjustedSerials),
         },
         include: {
           batch: {
