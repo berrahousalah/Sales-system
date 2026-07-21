@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { X, Loader2, ScanLine, Plus, Package } from "lucide-react";
 import { addLineToSalesInvoice, getAvailableBatchesForProduct, getAvailableSerialsForBatch } from "../actions";
+import { Combobox } from "@/components/ui/Combobox";
 
 export default function AddSalesLineModal({ invoiceId, products, onClose, onLineAdded }) {
   const [isPending, setIsPending] = useState(false);
@@ -212,19 +213,14 @@ export default function AddSalesLineModal({ invoiceId, products, onClose, onLine
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Product <span className="text-red-500">*</span>
             </label>
-            <select
+            <Combobox
+              options={products.map((p) => ({ value: p.id, label: p.name }))}
               value={productId}
-              onChange={(e) => setProductId(e.target.value)}
-              required
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white"
-            >
-              <option value="">— Select Product —</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+              onChange={setProductId}
+              placeholder="— Select Product —"
+              searchPlaceholder="Search products..."
+              className="w-full"
+            />
           </div>
 
           {/* Batch Selection (The Profit Engine) - Strictly hiding purchase price */}
@@ -233,22 +229,21 @@ export default function AddSalesLineModal({ invoiceId, products, onClose, onLine
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Batch <span className="text-red-500">*</span>
               </label>
-              <select
+              <Combobox
+                options={availableBatches.map((b) => ({
+                  value: b.id,
+                  label: `Batch from ${b.supplier.name} | Rem: ${b.quantityRemaining} | Ret: $${parseFloat(b.retailPrice).toFixed(2)}`
+                }))}
                 value={batchId}
-                onChange={(e) => setBatchId(e.target.value)}
-                required
-                disabled={loadingBatches}
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm bg-white"
-              >
-                <option value="">
-                  {loadingBatches ? "Loading batches..." : "— Select Available Batch —"}
-                </option>
-                {availableBatches.map((b) => (
-                  <option key={b.id} value={b.id}>
-                    Batch from {b.supplier.name} | Rem: {b.quantityRemaining} | Ret: ${parseFloat(b.retailPrice).toFixed(2)}
-                  </option>
-                ))}
-              </select>
+                onChange={setBatchId}
+                placeholder={loadingBatches ? "Loading batches..." : "— Select Available Batch —"}
+                searchPlaceholder="Search batches..."
+                disabled={loadingBatches || availableBatches.length === 0}
+                className="w-full"
+              />
+              {!loadingBatches && availableBatches.length === 0 && (
+                <p className="mt-1 text-xs text-red-500">No available batches for this product.</p>
+              )}
               {availableBatches.length === 0 && !loadingBatches && (
                 <p className="mt-1 text-xs text-amber-600 font-medium flex items-center gap-1">
                   <Package className="w-3.5 h-3.5" /> No available batches for this product.

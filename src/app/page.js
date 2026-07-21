@@ -76,8 +76,11 @@ export default function Home() {
           <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-indigo-900/40 via-slate-900 to-slate-900"></div>
           
           <div className="relative z-10 space-y-4">
+            <div className="inline-block px-3 py-1 mb-2 border border-blue-500/30 bg-blue-500/10 rounded-full text-blue-300 text-sm font-semibold tracking-widest uppercase">
+              Powered by TechnoLink
+            </div>
             <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight">
-              Enterprise <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">Resource</span> Planning
+              TechnoLink <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">ERP System</span>
             </h1>
             <p className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
               Fully integrated suite managing procurement, serialized stock, point-of-sale, customer debts, and immutable financial reports.

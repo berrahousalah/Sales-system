@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getProducts } from "./actions";
 import ProductsTable from "./components/ProductsTable";
 import ProductForm from "./components/ProductForm";
+import CsvImportModal from "./components/CsvImportModal";
 import { Package, ArrowLeft } from "lucide-react";
 
 export const metadata = {
@@ -34,7 +35,8 @@ export default async function ProductsPage() {
             </div>
           </div>
           
-          <div className="shrink-0">
+          <div className="shrink-0 flex items-center gap-2">
+            <CsvImportModal />
             <ProductForm />
           </div>
         </div>

@@ -163,3 +163,73 @@ export async function getProductBatches(productId) {
     return { success: false, message: "Database error: Failed to fetch batches" };
   }
 }
+
+/**
+ * Imports products from CSV and creates initial store stock batches
+ */
+export async function importProductsFromCsv(rows) {
+  try {
+    if (!rows || rows.length === 0) return { success: false, message: "No data provided." };
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Ensure default system supplier exists
+      const supplierName = "مخزون المحل الأولي";
+      let supplier = await tx.supplier.findFirst({
+        where: { name: { equals: supplierName } }
+      });
+      
+      if (!supplier) {
+        supplier = await tx.supplier.create({
+          data: {
+            name: supplierName,
+            contactPhone: "",
+            contactEmail: "",
+            totalDebt: 0,
+          }
+        });
+      }
+
+      // 2. Process each row
+      for (const row of rows) {
+        const { name, quantity, purchasePrice, retailPrice } = row;
+        if (!name) continue; // Skip empty rows
+
+        const parsedQty = parseInt(quantity, 10) || 0;
+        const parsedPurchase = parseFloat(purchasePrice) || 0;
+        const parsedRetail = parseFloat(retailPrice) || 0;
+
+        // Find or create product
+        let product = await tx.product.findFirst({ where: { name } });
+        if (!product) {
+          product = await tx.product.create({ data: { name, stockBalance: 0 } });
+        }
+
+        if (parsedQty > 0) {
+          // Increment stock
+          await tx.product.update({
+            where: { id: product.id },
+            data: { stockBalance: { increment: parsedQty } }
+          });
+
+          // Create initial batch linked to the system supplier
+          await tx.batch.create({
+            data: {
+              productId: product.id,
+              supplierId: supplier.id,
+              quantityReceived: parsedQty,
+              quantityRemaining: parsedQty,
+              purchasePrice: parsedPurchase,
+              retailPrice: parsedRetail,
+            }
+          });
+        }
+      }
+    });
+
+    revalidatePath("/", "layout");
+    return { success: true, message: "Products imported successfully." };
+  } catch (error) {
+    console.error("Failed to import CSV:", error);
+    return { success: false, message: "Failed to import products from CSV." };
+  }
+}

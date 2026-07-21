@@ -12,6 +12,7 @@ import {
   getAvailableBatchesForProduct,
   getAvailableSerialsForBatch
 } from "./actions";
+import { Combobox } from "@/components/ui/Combobox";
 
 export default function QuickSalesClient({ history: initialHistory, products }) {
   const router = useRouter();
@@ -186,35 +187,32 @@ export default function QuickSalesClient({ history: initialHistory, products }) 
             {/* Product */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Product</label>
-              <select
+              <Combobox
+                options={products.map((p) => ({ value: p.id, label: p.name }))}
                 value={productId}
-                onChange={(e) => setProductId(e.target.value)}
-                required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-pink-500 outline-none"
-              >
-                <option value="">— Select Product —</option>
-                {products.map((p) => (<option key={p.id} value={p.id}>{p.name}</option>))}
-              </select>
+                onChange={setProductId}
+                placeholder="— Select Product —"
+                searchPlaceholder="Search products..."
+                className="w-full"
+              />
             </div>
 
             {/* Batch (No purchase price) */}
             {productId && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Batch</label>
-                <select
+                <Combobox
+                  options={availableBatches.map((b) => ({
+                    value: b.id,
+                    label: `Rem: ${b.quantityRemaining} | Ret: $${parseFloat(b.retailPrice).toFixed(2)} (${b.supplier.name})`
+                  }))}
                   value={batchId}
-                  onChange={(e) => setBatchId(e.target.value)}
-                  required
-                  disabled={loadingBatches}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-pink-500 outline-none"
-                >
-                  <option value="">{loadingBatches ? "Loading..." : "— Select Available Batch —"}</option>
-                  {availableBatches.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      Rem: {b.quantityRemaining} | Ret: ${parseFloat(b.retailPrice).toFixed(2)} ({b.supplier.name})
-                    </option>
-                  ))}
-                </select>
+                  onChange={setBatchId}
+                  placeholder={loadingBatches ? "Loading..." : "— Select Available Batch —"}
+                  searchPlaceholder="Search batches..."
+                  disabled={loadingBatches || availableBatches.length === 0}
+                  className="w-full"
+                />
                 {availableBatches.length === 0 && !loadingBatches && (
                   <p className="mt-1 text-xs text-amber-600">No stock available for this product.</p>
                 )}

@@ -4,18 +4,25 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Loader2, FileText } from "lucide-react";
 import Link from "next/link";
+import { Combobox } from "@/components/ui/Combobox";
 import { createImportInvoice } from "../actions";
 
 export default function NewImportInvoicePage({ suppliers }) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState("");
+  const [supplierId, setSupplierId] = useState("");
   const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!supplierId) {
+      setError("Please select a supplier.");
+      return;
+    }
     setError("");
     const formData = new FormData(e.currentTarget);
-
+    // Combobox already handles the hidden input because we pass `name="supplierId"`
+    
     startTransition(async () => {
       const result = await createImportInvoice(formData);
       if (result.success) {
@@ -27,6 +34,8 @@ export default function NewImportInvoicePage({ suppliers }) {
   };
 
   const today = new Date().toISOString().split("T")[0];
+
+  const supplierOptions = suppliers.map((s) => ({ value: s.id, label: s.name }));
 
   return (
     <div className="min-h-screen bg-gray-50/50 p-6 md:p-8 lg:p-12">
@@ -70,19 +79,15 @@ export default function NewImportInvoicePage({ suppliers }) {
               <label htmlFor="supplierId" className="block text-sm font-medium text-gray-700 mb-1">
                 Supplier <span className="text-red-500">*</span>
               </label>
-              <select
-                id="supplierId"
+              <Combobox
                 name="supplierId"
-                required
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white"
-              >
-                <option value="">— Select Supplier —</option>
-                {suppliers.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+                options={supplierOptions}
+                value={supplierId}
+                onChange={setSupplierId}
+                placeholder="— Select Supplier —"
+                searchPlaceholder="Search suppliers..."
+                className="w-full"
+              />
               {suppliers.length === 0 && (
                 <p className="mt-1 text-xs text-red-500">
                   No suppliers found.{" "}

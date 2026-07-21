@@ -4,6 +4,8 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { X, Loader2, ScanLine, Plus } from "lucide-react";
 import { addLineToInvoice } from "../actions";
 
+import { Combobox } from "@/components/ui/Combobox";
+
 export default function AddLineModal({ invoiceId, products, onClose, onLineAdded }) {
   const [isPending, setIsPending] = useState(false);
   const [error, setError] = useState("");
@@ -106,6 +108,8 @@ export default function AddLineModal({ invoiceId, products, onClose, onLineAdded
   };
 
   const filledCount = isSerialised ? serials.filter((s) => s.trim()).length : 0;
+  
+  const productOptions = products.map(p => ({ value: p.id, label: p.name }));
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-50 p-4 overflow-y-auto">
@@ -133,19 +137,14 @@ export default function AddLineModal({ invoiceId, products, onClose, onLineAdded
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Product <span className="text-red-500">*</span>
             </label>
-            <select
+            <Combobox
+              options={productOptions}
               value={productId}
-              onChange={(e) => setProductId(e.target.value)}
-              required
-              className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 text-sm bg-white"
-            >
-              <option value="">— Select Product —</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
+              onChange={setProductId}
+              placeholder="— Select Product —"
+              searchPlaceholder="Search products..."
+              className="w-full"
+            />
           </div>
 
           {/* Quantity, Purchase Price, Retail Price */}
