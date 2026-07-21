@@ -124,7 +124,11 @@ export default function SalesInvoiceDetail({ invoice, products }) {
 
   // ── Delete line (Full Return) ──────────────────────────────────────────────
   const handleDeleteLine = async (line) => {
-    if (!confirm("Delete this row completely? This will immediately return the stock to warehouse and reverse customer debt/profit.")) return;
+    let msg = "Delete this row completely? This will immediately return the stock to warehouse and reverse customer debt/profit.";
+    if (line.batch.importInvoiceLine?.isSerialised && line.soldSerials?.length > 0) {
+      msg += `\n\nWARNING: This will return ALL ${line.soldSerials.length} associated serial number(s) to inventory!\nSerials: ${line.soldSerials.join(', ')}`;
+    }
+    if (!confirm(msg)) return;
     setDeletingLineId(line.id);
     const result = await deleteSalesInvoiceLine(line.id);
     if (result.success) {
@@ -225,26 +229,11 @@ export default function SalesInvoiceDetail({ invoice, products }) {
                   </span>
                 </div>
               </div>
-              {invoice.isHeaderLocked && (
-                <div className="flex items-center gap-1.5 text-xs text-indigo-600 font-medium">
-                  <Lock className="w-3.5 h-3.5" /> Header is permanently locked
-                </div>
-              )}
             </div>
-
-            {/* Lock button */}
-            {!invoice.isHeaderLocked && (
-              <button
-                onClick={handleLockHeader}
-                disabled={lockingHeader || invoice.lines.length === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors text-sm font-medium shrink-0"
-              >
-                {lockingHeader ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-                Lock Header
-              </button>
-            )}
           </div>
         </div>
+
+        {/* ── PRODUCTS SOLD ────────────────────────────────────────── */}
 
         {/* ── INVOICE LINES ────────────────────────────────────────── */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
@@ -312,7 +301,7 @@ export default function SalesInvoiceDetail({ invoice, products }) {
                           {isEditing ? (
                             isSerialised ? (
                               <div className="flex flex-col items-end gap-1">
-                                <span className="text-xs text-gray-400">Reduce quantity by removing SNs</span>
+                                <span className="text-xs text-gray-400">Edit quantity & select SNs to retain</span>
                                 <input
                                   type="number"
                                   min={1}
@@ -322,22 +311,60 @@ export default function SalesInvoiceDetail({ invoice, products }) {
                                     const newQ = parseInt(e.target.value) || 1;
                                     setLineEdits(p => ({
                                       ...p,
-                                      quantity: newQ,
-                                      soldSerials: line.soldSerials.slice(0, newQ) // Slice to remove from end for returns
+                                      quantity: Math.min(newQ, line.quantity),
+                                      // Do not slice automatically; user must uncheck manually if they reduce quantity
                                     }));
                                   }}
                                   className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-right focus:ring-2 focus:ring-indigo-400 focus:outline-none"
                                 />
-                                <div className="text-[10px] text-orange-500 max-w-[150px] whitespace-normal">
-                                  Currently retaining: {lineEdits.soldSerials.join(", ")}
-                                </div>
+                                {lineEdits.quantity < line.quantity ? (
+                                  <div className="mt-2 p-2 bg-white border border-indigo-200 rounded-md shadow-sm text-left min-w-[200px]">
+                                    <p className="text-xs font-semibold text-indigo-700 mb-1">
+                                      Select {lineEdits.quantity} SN(s) to retain:
+                                    </p>
+                                    <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
+                                      {line.soldSerials.map(sn => {
+                                        const isSelected = lineEdits.soldSerials.includes(sn);
+                                        const isDisabled = !isSelected && lineEdits.soldSerials.length >= lineEdits.quantity;
+                                        return (
+                                          <label key={sn} className={`flex items-center gap-2 p-1 rounded border text-xs cursor-pointer ${isSelected ? "bg-indigo-50 border-indigo-200" : isDisabled ? "opacity-40 cursor-not-allowed bg-gray-50 border-transparent" : "hover:bg-gray-50 border-transparent"}`}>
+                                            <input 
+                                              type="checkbox" 
+                                              checked={isSelected}
+                                              disabled={isDisabled}
+                                              onChange={() => {
+                                                setLineEdits(p => ({
+                                                  ...p,
+                                                  soldSerials: isSelected ? p.soldSerials.filter(s => s !== sn) : [...p.soldSerials, sn]
+                                                }));
+                                              }}
+                                              className="w-3 h-3"
+                                            />
+                                            <span className="font-mono">{sn}</span>
+                                          </label>
+                                        );
+                                      })}
+                                    </div>
+                                    <div className={`text-[10px] mt-1 font-medium ${lineEdits.soldSerials.length !== lineEdits.quantity ? "text-red-500" : "text-green-600"}`}>
+                                      {lineEdits.soldSerials.length} of {lineEdits.quantity} selected
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="text-[10px] text-gray-500 max-w-[150px] whitespace-normal">
+                                    Currently retaining all SNs.
+                                  </div>
+                                )}
                               </div>
                             ) : (
                               <input
                                 type="number"
                                 min={1}
+                                max={line.quantity}
                                 value={lineEdits.quantity}
-                                onChange={(e) => setLineEdits((p) => ({ ...p, quantity: e.target.value }))}
+                                onChange={(e) => {
+                                  const newQ = parseInt(e.target.value) || 1;
+                                  setLineEdits((p) => ({ ...p, quantity: Math.min(newQ, line.quantity) }));
+                                }}
                                 className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-right focus:ring-2 focus:ring-indigo-400 focus:outline-none"
                               />
                             )

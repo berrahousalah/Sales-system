@@ -88,7 +88,7 @@ export async function createImportInvoice(formData) {
           invoiceNumber,
           supplierId: parsed.data.supplierId,
           invoiceDate: new Date(parsed.data.invoiceDate),
-          isHeaderLocked: false,
+          isHeaderLocked: true,
         },
       });
     });
@@ -291,9 +291,7 @@ const UpdateLineSchema = z.object({
   purchasePrice: z.number().positive(),
   retailPrice: z.number().positive(),
   // For serialised batches:
-  //   newSerials: serial numbers for newly ADDED units (length must equal quantityDelta when delta > 0)
   //   removedSerials: serial numbers to REMOVE from inventory pool (length must equal abs(quantityDelta) when delta < 0)
-  newSerials: z.array(z.string().trim().min(1)).optional().default([]),
   removedSerials: z.array(z.string().trim().min(1)).optional().default([]),
 });
 
@@ -332,68 +330,32 @@ export async function updateInvoiceLine(data) {
 
       const quantityDelta = quantity - oldQuantity;
 
+      // Rule: STRICT RULE: NO INCREASING QUANTITY DURING EDIT
+      if (quantityDelta > 0) {
+        throw new Error("Cannot increase quantity of an existing line. Please create a new batch instead.");
+      }
+
       // ── SERIAL NUMBER MANAGEMENT ───────────────────────────────────
-      if (line.isSerialised && quantityDelta !== 0) {
-        if (quantityDelta > 0) {
-          // ADDING units: require exactly delta new serial numbers
-          if (newSerials.length !== quantityDelta)
-            throw new Error(`Please provide ${quantityDelta} new serial number(s) for the added unit(s). Received ${newSerials.length}.`);
+      if (line.isSerialised && quantityDelta < 0) {
+        // REMOVING units: require exactly abs(delta) serial numbers to delete
+        const removeCount = Math.abs(quantityDelta);
+        if (removedSerials.length !== removeCount)
+          throw new Error(`Please select ${removeCount} serial number(s) to remove. Received ${removedSerials.length}.`);
 
-          // Validate uniqueness across inventory
-          const duplicate = await tx.serialNumber.findFirst({
-            where: { serial: { in: newSerials } },
-          });
-          if (duplicate)
-            throw new Error(`Serial number "${duplicate.serial}" already exists in inventory.`);
-
-          // Create the new serial records
-          await tx.serialNumber.createMany({
-            data: newSerials.map((s) => ({ serial: s, importInvoiceLineId: lineId })),
-          });
-
-        } else {
-          // REMOVING units: require exactly abs(delta) serial numbers to delete
-          const removeCount = Math.abs(quantityDelta);
-          if (removedSerials.length !== removeCount)
-            throw new Error(`Please select ${removeCount} serial number(s) to remove. Received ${removedSerials.length}.`);
-
-          // Verify the provided serials belong to this line and are not sold
-          const snRecords = await tx.serialNumber.findMany({
-            where: { serial: { in: removedSerials }, importInvoiceLineId: lineId },
-          });
-          if (snRecords.length !== removeCount)
-            throw new Error("One or more selected serials do not belong to this batch.");
-
-          const soldSn = snRecords.find((s) => s.isSold || s.isReturned);
-          if (soldSn)
-            throw new Error(`Serial "${soldSn.serial}" has already been sold and cannot be removed.`);
-
-          // Delete the chosen serial records
-          await tx.serialNumber.deleteMany({
-            where: { serial: { in: removedSerials }, importInvoiceLineId: lineId },
-          });
-        }
-      } else if (line.isSerialised && quantityDelta === 0 && !hasSales && newSerials.length > 0) {
-        // Qty unchanged, replacing all unsold serials (only allowed when no sales)
-        if (newSerials.length !== quantity)
-          throw new Error(`Expected ${quantity} serial numbers but received ${newSerials.length}.`);
-
-        const existingSerials = line.serialNumbers.map((s) => s.serial);
-        const brandNewSerials = newSerials.filter((s) => !existingSerials.includes(s));
-
-        if (brandNewSerials.length > 0) {
-          const duplicate = await tx.serialNumber.findFirst({
-            where: { serial: { in: brandNewSerials }, importInvoiceLineId: { not: lineId } },
-          });
-          if (duplicate)
-            throw new Error(`Serial number "${duplicate.serial}" already exists in inventory.`);
-        }
-
-        await tx.serialNumber.deleteMany({
-          where: { importInvoiceLineId: lineId, isSold: false, isReturned: false },
+        // Verify the provided serials belong to this line and are not sold
+        const snRecords = await tx.serialNumber.findMany({
+          where: { serial: { in: removedSerials }, importInvoiceLineId: lineId },
         });
-        await tx.serialNumber.createMany({
-          data: newSerials.map((s) => ({ serial: s, importInvoiceLineId: lineId })),
+        if (snRecords.length !== removeCount)
+          throw new Error("One or more selected serials do not belong to this batch.");
+
+        const soldSn = snRecords.find((s) => s.isSold || s.isReturned);
+        if (soldSn)
+          throw new Error(`Serial "${soldSn.serial}" has already been sold and cannot be removed.`);
+
+        // Delete the chosen serial records
+        await tx.serialNumber.deleteMany({
+          where: { serial: { in: removedSerials }, importInvoiceLineId: lineId },
         });
       }
       // ──────────────────────────────────────────────────────────────

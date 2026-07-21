@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
-  Plus, Lock, Unlock, Trash2, Save, Loader2, ChevronLeft, X,
+  Plus, Lock, Unlock, Trash2, Save, Loader2, ChevronLeft, X, Edit,
   Package, AlertTriangle, CheckCircle, DollarSign, ArrowLeft, ScanLine
 } from "lucide-react";
 import Link from "next/link";
@@ -146,7 +146,11 @@ export default function InvoiceDetail({ invoice, products }) {
 
   // ── Delete line ───────────────────────────────────────────────────────────
   const handleDeleteLine = async (line) => {
-    if (!confirm("Delete this line? This will remove it from inventory if the invoice is locked.")) return;
+    let msg = "Delete this line? This will remove it from inventory if the invoice is locked.";
+    if (line.isSerialised && line.serialNumbers?.length > 0) {
+      msg += `\n\nWARNING: This will delete ALL ${line.serialNumbers.length} associated serial number(s)!\nSerials: ${line.serialNumbers.map(s => s.serial).join(', ')}`;
+    }
+    if (!confirm(msg)) return;
     setDeletingLineId(line.id);
     const result = await deleteInvoiceLine(line.id);
     if (result.success) {
@@ -247,24 +251,7 @@ export default function InvoiceDetail({ invoice, products }) {
                   </span>
                 </div>
               </div>
-              {invoice.isHeaderLocked && (
-                <div className="flex items-center gap-1.5 text-xs text-amber-600 font-medium">
-                  <Lock className="w-3.5 h-3.5" /> Header is permanently locked
-                </div>
-              )}
             </div>
-
-            {/* Lock button */}
-            {!invoice.isHeaderLocked && (
-              <button
-                onClick={handleLockHeader}
-                disabled={lockingHeader || invoice.lines.length === 0}
-                className="flex items-center gap-2 px-4 py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 disabled:opacity-50 transition-colors text-sm font-medium shrink-0"
-              >
-                {lockingHeader ? <Loader2 className="w-4 h-4 animate-spin" /> : <Lock className="w-4 h-4" />}
-                Lock & Save Header
-              </button>
-            )}
           </div>
         </div>
 
@@ -342,6 +329,7 @@ export default function InvoiceDetail({ invoice, products }) {
                             <input
                               type="number"
                               min={line.quantitySold || 1}
+                              max={line.quantity}
                               value={lineEdits.quantity}
                               onChange={(e) => handleQtyChange(line, e.target.value)}
                               className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-right focus:ring-2 focus:ring-emerald-400 focus:outline-none"
@@ -444,16 +432,14 @@ export default function InvoiceDetail({ invoice, products }) {
                               </>
                             ) : (
                               <>
-                                {/* Edit allowed for all rows that aren't fully locked */}
-                                {!isFullyLocked && (
-                                  <button
-                                    onClick={() => startEditLine(line)}
-                                    className="p-1.5 text-blue-500 hover:bg-blue-50 rounded transition-colors text-xs font-medium"
-                                    title="Edit"
-                                  >
-                                    Edit
-                                  </button>
-                                )}
+                                {/* Edit allowed for all rows, rules enforced on save */}
+                                <button
+                                  onClick={() => startEditLine(line)}
+                                  className="p-1.5 text-blue-500 hover:bg-blue-50 rounded transition-colors text-xs font-medium flex items-center gap-1"
+                                  title="Edit"
+                                >
+                                  <Edit className="w-3.5 h-3.5" /> Edit
+                                </button>
                                 <button
                                   onClick={() => handleDeleteLine(line)}
                                   disabled={isFullyLocked || deletingLineId === line.id}

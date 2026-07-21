@@ -118,7 +118,7 @@ export async function createSalesInvoice(formData) {
           invoiceNumber,
           customerId: parsed.data.customerId,
           invoiceDate: new Date(parsed.data.invoiceDate),
-          isHeaderLocked: false,
+          isHeaderLocked: true,
         },
       });
     });
@@ -301,32 +301,23 @@ export async function updateSalesInvoiceLine(data) {
       const batch = line.batch;
 
       if (delta > 0) {
-        // ADDING — stock guardrail
-        if (batch.quantityRemaining < delta) {
-          throw new Error(
-            `Cannot add ${delta} more unit(s). Only ${batch.quantityRemaining} remaining in batch.`
-          );
-        }
+        throw new Error("Cannot increase quantity of an existing line. Please create a new sales line instead.");
       }
 
       // Handle serial numbers for delta
-      if (batch.importInvoiceLine?.isSerialised && delta !== 0) {
-        if (delta < 0) {
-          // Returning serials — mark them as not sold
-          const returningSerials = (typeof line.soldSerials === 'string' ? JSON.parse(line.soldSerials || '[]') : (line.soldSerials || [])).slice(0, Math.abs(delta));
-          await tx.serialNumber.updateMany({
-            where: { serial: { in: returningSerials } },
-            data: { isSold: false },
-          });
-        } else if (delta > 0) {
-          if (soldSerials.length !== delta) {
-            throw new Error(`Need ${delta} new serial number(s) for addition.`);
-          }
-          await tx.serialNumber.updateMany({
-            where: { serial: { in: soldSerials } },
-            data: { isSold: true },
-          });
+      if (batch.importInvoiceLine?.isSerialised && delta < 0) {
+        // Returning serials — explicit user selection passed in `soldSerials` are those being RETAINED.
+        const oldSerialsList = typeof line.soldSerials === 'string' ? JSON.parse(line.soldSerials || '[]') : (line.soldSerials || []);
+        const returningSerials = oldSerialsList.filter(s => !soldSerials.includes(s));
+
+        if (returningSerials.length !== Math.abs(delta)) {
+          throw new Error(`Please select exactly ${Math.abs(delta)} serial number(s) to remove.`);
         }
+        
+        await tx.serialNumber.updateMany({
+          where: { serial: { in: returningSerials } },
+          data: { isSold: false },
+        });
       }
 
       // Sync batch stock
@@ -348,14 +339,9 @@ export async function updateSalesInvoiceLine(data) {
       });
 
       // Update the sales invoice line
-      const newSoldSerials =
-        batch.importInvoiceLine?.isSerialised && delta < 0
-          ? (typeof line.soldSerials === 'string' ? JSON.parse(line.soldSerials || '[]') : (line.soldSerials || [])).slice(Math.abs(delta)) // remove returned serials from front
-          : [...(typeof line.soldSerials === 'string' ? JSON.parse(line.soldSerials || '[]') : (line.soldSerials || [])), ...soldSerials];
-
       await tx.salesInvoiceLine.update({
         where: { id: lineId },
-        data: { quantity, sellingPrice, soldSerials: JSON.stringify(newSoldSerials) },
+        data: { quantity, sellingPrice, soldSerials: JSON.stringify(soldSerials) },
       });
 
       // Recalculate totals + sync customer debt delta
@@ -402,9 +388,17 @@ export async function deleteSalesInvoiceLine(lineId) {
       const { quantity, batchId, batch, soldSerials } = line;
 
       // Restore serial numbers
-      if (soldSerials.length > 0) {
+      let serialsList = [];
+      if (typeof soldSerials === 'string') {
+        try { serialsList = JSON.parse(soldSerials); } 
+        catch (e) { serialsList = soldSerials ? [soldSerials] : []; }
+      } else if (Array.isArray(soldSerials)) {
+        serialsList = soldSerials;
+      }
+
+      if (serialsList.length > 0) {
         await tx.serialNumber.updateMany({
-          where: { serial: { in: soldSerials } },
+          where: { serial: { in: serialsList } },
           data: { isSold: false },
         });
       }
