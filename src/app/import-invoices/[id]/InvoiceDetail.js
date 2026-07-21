@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus, Lock, Unlock, Trash2, Save, Loader2, ChevronLeft, X,
-  Package, AlertTriangle, CheckCircle, DollarSign, ArrowLeft
+  Package, AlertTriangle, CheckCircle, DollarSign, ArrowLeft, ScanLine
 } from "lucide-react";
 import Link from "next/link";
 import AddLineModal from "./AddLineModal";
@@ -27,6 +27,10 @@ export default function InvoiceDetail({ invoice, products }) {
   const [lockingHeader, setLockingHeader] = useState(false);
   const [editingLineId, setEditingLineId] = useState(null);
   const [lineEdits, setLineEdits] = useState({});
+  // serialMode: 'add' | 'remove' | null — only relevant for serialised lines with qty delta
+  const [serialMode, setSerialMode] = useState(null);
+  const [serialInputs, setSerialInputs] = useState([]); // new serials to add
+  const [removeSerials, setRemoveSerials] = useState([]); // serials selected for removal
   const [savingLineId, setSavingLineId] = useState(null);
   const [deletingLineId, setDeletingLineId] = useState(null);
   const [footerValues, setFooterValues] = useState({
@@ -64,8 +68,10 @@ export default function InvoiceDetail({ invoice, products }) {
 
   // ── Start editing a line ──────────────────────────────────────────────────
   const startEditLine = (line) => {
-    if (line.isLocked) return; // Locked rows cannot be edited via this path
     setEditingLineId(line.id);
+    setSerialMode(null);
+    setSerialInputs([]);
+    setRemoveSerials([]);
     setLineEdits({
       quantity: line.quantity,
       purchasePrice: parseFloat(line.purchasePrice),
@@ -73,27 +79,67 @@ export default function InvoiceDetail({ invoice, products }) {
     });
   };
 
+  // ── Compute serial state when qty changes ─────────────────────────────────
+  const handleQtyChange = (line, rawValue) => {
+    const newQty = parseInt(rawValue) || 1;
+    const delta = newQty - line.quantity;
+    setLineEdits((p) => ({ ...p, quantity: newQty }));
+
+    if (line.isSerialised) {
+      if (delta > 0) {
+        setSerialMode("add");
+        setSerialInputs(Array.from({ length: delta }, () => ""));
+        setRemoveSerials([]);
+      } else if (delta < 0) {
+        setSerialMode("remove");
+        setRemoveSerials([]);
+        setSerialInputs([]);
+      } else {
+        setSerialMode(null);
+        setSerialInputs([]);
+        setRemoveSerials([]);
+      }
+    }
+  };
+
   // ── Save line edits ───────────────────────────────────────────────────────
   const handleSaveLine = async (line) => {
+    const newQty = Number(lineEdits.quantity);
+    const delta = newQty - line.quantity;
+    const hasSales = (line.quantitySold ?? 0) > 0;
+
+    // Client-side serial validation
+    if (line.isSerialised && delta > 0) {
+      if (serialInputs.some((s) => !s.trim())) {
+        showFeedback(`Please enter all ${delta} new serial number(s) before saving.`, true);
+        return;
+      }
+    }
+    if (line.isSerialised && delta < 0) {
+      const removeCount = Math.abs(delta);
+      if (removeSerials.length !== removeCount) {
+        showFeedback(`Please select exactly ${removeCount} serial number(s) to remove.`, true);
+        return;
+      }
+    }
+
     setSavingLineId(line.id);
     const result = await updateInvoiceLine({
       lineId: line.id,
-      quantity: Number(lineEdits.quantity),
+      quantity: newQty,
       purchasePrice: parseFloat(lineEdits.purchasePrice),
       retailPrice: parseFloat(lineEdits.retailPrice),
-      serials: [],
+      newSerials: line.isSerialised && delta > 0 ? serialInputs.map((s) => s.trim()) : [],
+      removedSerials: line.isSerialised && delta < 0 ? removeSerials : [],
     });
+
     if (result.success) {
       showFeedback("Line updated. Totals recalculated.");
       router.refresh();
       setEditingLineId(null);
+      setSerialMode(null);
     } else {
       showFeedback(result.message, true);
-      setLineEdits({
-        quantity: line.quantity,
-        purchasePrice: parseFloat(line.purchasePrice),
-        retailPrice: parseFloat(line.retailPrice),
-      });
     }
     setSavingLineId(null);
   };
@@ -257,16 +303,27 @@ export default function InvoiceDetail({ invoice, products }) {
                   {invoice.lines.map((line) => {
                     const isEditing = editingLineId === line.id;
                     const subtotal = parseFloat(line.purchasePrice) * line.quantity;
+                    const hasSales = (line.quantitySold ?? 0) > 0;
+                    // Row is "partially sold" — not fully locked, but some fields are read-only
+                    const isFullyLocked = line.isLocked;
+
+                    // In edit mode, compute current delta
+                    const editDelta = isEditing ? (Number(lineEdits.quantity) - line.quantity) : 0;
 
                     return (
                       <tr
                         key={line.id}
-                        className={`transition-colors ${line.isLocked ? "bg-amber-50/40" : "hover:bg-gray-50/50"
-                          }`}
+                        className={`transition-colors ${
+                          isFullyLocked
+                            ? "bg-amber-50/40"
+                            : hasSales
+                            ? "bg-blue-50/20"
+                            : "hover:bg-gray-50/50"
+                        }`}
                       >
                         <td className="px-5 py-3 font-medium text-gray-900">
                           <div className="flex items-center gap-2">
-                            {line.isLocked && (
+                            {isFullyLocked && (
                               <Lock className="w-3.5 h-3.5 text-amber-500 shrink-0" title="Row locked — units have been sold" />
                             )}
                             {line.product.name}
@@ -274,8 +331,8 @@ export default function InvoiceDetail({ invoice, products }) {
                               <span className="text-xs bg-blue-100 text-blue-600 px-1.5 py-0.5 rounded font-medium">SN</span>
                             )}
                           </div>
-                          {line.isLocked && (
-                            <p className="text-xs text-amber-600 mt-0.5">{line.quantitySold} unit(s) sold</p>
+                          {hasSales && (
+                            <p className="text-xs text-blue-600 mt-0.5">{line.quantitySold} unit(s) sold</p>
                           )}
                         </td>
 
@@ -286,7 +343,7 @@ export default function InvoiceDetail({ invoice, products }) {
                               type="number"
                               min={line.quantitySold || 1}
                               value={lineEdits.quantity}
-                              onChange={(e) => setLineEdits((p) => ({ ...p, quantity: e.target.value }))}
+                              onChange={(e) => handleQtyChange(line, e.target.value)}
                               className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-right focus:ring-2 focus:ring-emerald-400 focus:outline-none"
                             />
                           ) : (
@@ -294,26 +351,36 @@ export default function InvoiceDetail({ invoice, products }) {
                           )}
                         </td>
 
-                        {/* Purchase Price */}
+                        {/* Purchase Price — read-only if any units sold */}
                         <td className="px-4 py-3 text-right">
-                          {isEditing && !line.isLocked ? (
-                            <input
-                              type="number"
-                              step="0.01"
-                              min="0.01"
-                              value={lineEdits.purchasePrice}
-                              onChange={(e) => setLineEdits((p) => ({ ...p, purchasePrice: e.target.value }))}
-                              className="w-24 px-2 py-1 border border-gray-300 rounded text-sm text-right focus:ring-2 focus:ring-emerald-400 focus:outline-none"
-                            />
+                          {isEditing ? (
+                            hasSales ? (
+                              // Read-only — units have been sold
+                              <div className="flex items-center gap-1 justify-end text-gray-500">
+                                <span>${parseFloat(line.purchasePrice).toFixed(2)}</span>
+                                <Lock className="w-3 h-3 text-blue-400" title="Locked: units sold" />
+                              </div>
+                            ) : (
+                              <input
+                                type="number"
+                                step="0.01"
+                                min="0.01"
+                                value={lineEdits.purchasePrice}
+                                onChange={(e) => setLineEdits((p) => ({ ...p, purchasePrice: e.target.value }))}
+                                className="w-24 px-2 py-1 border border-gray-300 rounded text-sm text-right focus:ring-2 focus:ring-emerald-400 focus:outline-none"
+                              />
+                            )
                           ) : (
-                            <span className={line.isLocked ? "text-gray-400 line-through-none" : ""}>
+                            <span>
                               ${parseFloat(line.purchasePrice).toFixed(2)}
-                              {line.isLocked && <Lock className="inline w-3 h-3 ml-1 text-amber-400" />}
+                              {hasSales && (
+                                <Lock className="inline w-3 h-3 ml-1 text-blue-400" title="Locked: units sold" />
+                              )}
                             </span>
                           )}
                         </td>
 
-                        {/* Retail Price */}
+                        {/* Retail Price — always editable */}
                         <td className="px-4 py-3 text-right">
                           {isEditing ? (
                             <input
@@ -335,9 +402,13 @@ export default function InvoiceDetail({ invoice, products }) {
 
                         {/* Lock status badge */}
                         <td className="px-4 py-3 text-center">
-                          {line.isLocked ? (
+                          {isFullyLocked ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
                               <Lock className="w-3 h-3" /> Locked
+                            </span>
+                          ) : hasSales ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full text-xs font-medium">
+                              <Lock className="w-3 h-3" /> Partial
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs">
@@ -364,7 +435,7 @@ export default function InvoiceDetail({ invoice, products }) {
                                   )}
                                 </button>
                                 <button
-                                  onClick={() => setEditingLineId(null)}
+                                  onClick={() => { setEditingLineId(null); setSerialMode(null); }}
                                   className="p-1.5 text-gray-400 hover:bg-gray-100 rounded transition-colors"
                                   title="Cancel"
                                 >
@@ -373,7 +444,8 @@ export default function InvoiceDetail({ invoice, products }) {
                               </>
                             ) : (
                               <>
-                                {!line.isLocked && (
+                                {/* Edit allowed for all rows that aren't fully locked */}
+                                {!isFullyLocked && (
                                   <button
                                     onClick={() => startEditLine(line)}
                                     className="p-1.5 text-blue-500 hover:bg-blue-50 rounded transition-colors text-xs font-medium"
@@ -384,9 +456,9 @@ export default function InvoiceDetail({ invoice, products }) {
                                 )}
                                 <button
                                   onClick={() => handleDeleteLine(line)}
-                                  disabled={line.isLocked || deletingLineId === line.id}
+                                  disabled={isFullyLocked || deletingLineId === line.id}
                                   className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors disabled:opacity-30"
-                                  title={line.isLocked ? "Cannot delete locked row" : "Delete"}
+                                  title={isFullyLocked ? "Cannot delete locked row" : "Delete"}
                                 >
                                   {deletingLineId === line.id ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -406,6 +478,103 @@ export default function InvoiceDetail({ invoice, products }) {
             </div>
           )}
         </div>
+
+        {/* ── SERIAL EDITING PANEL (shown when editing a serialised line with qty delta) ── */}
+        {editingLineId && serialMode && (() => {
+          const line = invoice.lines.find((l) => l.id === editingLineId);
+          if (!line || !line.isSerialised) return null;
+          const delta = Number(lineEdits.quantity) - line.quantity;
+
+          if (serialMode === "add" && delta > 0) {
+            return (
+              <div className="bg-white rounded-xl shadow-sm border border-blue-200 p-5 space-y-3">
+                <div className="flex items-center gap-2 text-blue-700 font-semibold text-sm">
+                  <ScanLine className="w-4 h-4" />
+                  Enter {delta} New Serial Number{delta > 1 ? "s" : ""} for Added Unit{delta > 1 ? "s" : ""}
+                </div>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                  {serialInputs.map((val, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="text-xs text-gray-400 w-5 text-right shrink-0">{i + 1}.</span>
+                      <input
+                        type="text"
+                        value={val}
+                        onChange={(e) => {
+                          const next = [...serialInputs];
+                          next[i] = e.target.value;
+                          setSerialInputs(next);
+                        }}
+                        placeholder={`New Serial #${i + 1}`}
+                        className={`flex-1 px-3 py-2 border rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                          val.trim() ? "border-blue-300 bg-blue-50" : "border-gray-300"
+                        }`}
+                      />
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-400">These serials will be added to the inventory pool for this batch.</p>
+              </div>
+            );
+          }
+
+          if (serialMode === "remove" && delta < 0) {
+            const removeCount = Math.abs(delta);
+            // Show all unsold serials for this line so user can pick which to remove
+            const unsoldSerials = (line.serialNumbers || []).filter((sn) => !sn.isSold && !sn.isReturned);
+
+            return (
+              <div className="bg-white rounded-xl shadow-sm border border-amber-200 p-5 space-y-3">
+                <div className="flex items-center gap-2 text-amber-700 font-semibold text-sm">
+                  <AlertTriangle className="w-4 h-4" />
+                  Select {removeCount} Serial Number{removeCount > 1 ? "s" : ""} to Remove
+                </div>
+                <p className="text-xs text-gray-500">
+                  Choose exactly {removeCount} unsold serial(s) to permanently remove from inventory.
+                  ({removeSerials.length}/{removeCount} selected)
+                </p>
+                <div className="space-y-1.5 max-h-48 overflow-y-auto">
+                  {unsoldSerials.length === 0 ? (
+                    <p className="text-sm text-gray-400 italic">No unsold serials available to remove.</p>
+                  ) : (
+                    unsoldSerials.map((sn) => {
+                      const isSelected = removeSerials.includes(sn.serial);
+                      const isDisabled = !isSelected && removeSerials.length >= removeCount;
+                      return (
+                        <label
+                          key={sn.id}
+                          className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
+                            isSelected
+                              ? "border-amber-300 bg-amber-50"
+                              : isDisabled
+                              ? "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
+                              : "border-gray-200 hover:bg-gray-50"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            disabled={isDisabled}
+                            onChange={() => {
+                              setRemoveSerials((prev) =>
+                                isSelected
+                                  ? prev.filter((s) => s !== sn.serial)
+                                  : [...prev, sn.serial]
+                              );
+                            }}
+                            className="w-4 h-4"
+                          />
+                          <span className="font-mono text-sm">{sn.serial}</span>
+                        </label>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
+            );
+          }
+
+          return null;
+        })()}
 
         {/* ── FOOTER / AMOUNTS ─────────────────────────────────────── */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">

@@ -11,7 +11,8 @@ const CustomerSchema = z.object({
 });
 
 /**
- * Creates a new Customer
+ * Creates a new Customer.
+ * Enforces a case-insensitive unique name check.
  */
 export async function createCustomer(formData) {
   try {
@@ -22,12 +23,21 @@ export async function createCustomer(formData) {
       return { success: false, message: parsed.error.errors[0].message };
     }
 
+    // Case-insensitive duplicate check (SQLite-compatible)
+    const allCustomers = await prisma.customer.findMany({ select: { name: true } });
+    const isDuplicate = allCustomers.some(
+      (c) => c.name.toLowerCase() === parsed.data.name.toLowerCase()
+    );
+    if (isDuplicate) {
+      return { success: false, message: `A customer named "${parsed.data.name}" already exists.` };
+    }
+
     const newCustomer = await prisma.customer.create({
       data: { name: parsed.data.name },
     });
 
     revalidatePath("/", "layout");
-    return { success: true, message: "Customer created successfully", customer: newCustomer };
+    return { success: true, message: "Customer created successfully", customer: serializeCustomer(newCustomer) };
   } catch (error) {
     console.error("Failed to create customer:", error);
     return { success: false, message: "Database error: Failed to create customer" };
@@ -46,6 +56,87 @@ export async function getCustomers() {
   } catch (error) {
     console.error("Failed to fetch customers:", error);
     return { success: false, message: "Database error: Failed to fetch customers" };
+  }
+}
+
+/**
+ * Deletes a Customer.
+ * BLOCKED if: totalDebt > 0, or if any sales invoices reference this customer.
+ */
+export async function deleteCustomer(customerId) {
+  try {
+    const customer = await prisma.customer.findUnique({
+      where: { id: customerId },
+      include: { _count: { select: { salesInvoices: true } } },
+    });
+
+    if (!customer) {
+      return { success: false, message: "Customer not found." };
+    }
+
+    const totalDebt = parseFloat(customer.totalDebt);
+    if (totalDebt > 0) {
+      return {
+        success: false,
+        message: `Cannot delete "${customer.name}". They have an outstanding debt balance of $${totalDebt.toFixed(2)}. Clear all debt before deleting.`,
+      };
+    }
+
+    if (customer._count.salesInvoices > 0) {
+      return {
+        success: false,
+        message: `Cannot delete "${customer.name}". They have ${customer._count.salesInvoices} sales invoice(s) on record. This customer cannot be removed while invoices exist.`,
+      };
+    }
+
+    await prisma.customer.delete({ where: { id: customerId } });
+    revalidatePath("/", "layout");
+    return { success: true, message: `Customer "${customer.name}" deleted successfully.` };
+  } catch (error) {
+    console.error("Failed to delete customer:", error);
+    return { success: false, message: error.message || "Database error: Failed to delete customer." };
+  }
+}
+
+/**
+ * Manually adjusts a Customer's total debt by a delta amount (additive).
+ * Positive delta = add debt. Negative delta = reduce debt (manual credit).
+ * This is for initial/manual debt entry — it does NOT allocate against invoices.
+ */
+export async function adjustCustomerDebt(customerId, deltaStr) {
+  try {
+    const delta = parseFloat(deltaStr);
+    if (isNaN(delta) || delta === 0) {
+      return { success: false, message: "Please enter a valid non-zero adjustment amount." };
+    }
+
+    const customer = await prisma.customer.findUnique({ where: { id: customerId } });
+    if (!customer) return { success: false, message: "Customer not found." };
+
+    const currentDebt = parseFloat(customer.totalDebt);
+    const newDebt = currentDebt + delta;
+
+    if (newDebt < 0) {
+      return {
+        success: false,
+        message: `Adjustment would result in a negative debt balance ($${newDebt.toFixed(2)}). Reduce the adjustment amount.`,
+      };
+    }
+
+    const updated = await prisma.customer.update({
+      where: { id: customerId },
+      data: { totalDebt: newDebt },
+    });
+
+    revalidatePath("/", "layout");
+    return {
+      success: true,
+      message: `Debt adjusted by $${delta >= 0 ? "+" : ""}${delta.toFixed(2)}. New balance: $${newDebt.toFixed(2)}.`,
+      customer: serializeCustomer(updated),
+    };
+  } catch (error) {
+    console.error("Failed to adjust customer debt:", error);
+    return { success: false, message: "Database error: Failed to adjust debt." };
   }
 }
 

@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Plus, Lock, Unlock, Trash2, Save, Loader2, ChevronLeft, ArrowLeft,
-  Package, AlertTriangle, CheckCircle, DollarSign, CornerDownLeft
+  Package, AlertTriangle, CheckCircle, DollarSign, CornerDownLeft, X
 } from "lucide-react";
 import Link from "next/link";
 import AddSalesLineModal from "./AddSalesLineModal";
@@ -21,8 +21,7 @@ const STATUS_STYLES = {
   UNPAID: "bg-red-100 text-red-700 border-red-200",
 };
 
-export default function SalesInvoiceDetail({ invoice: initial, products }) {
-  const [invoice, setInvoice] = useState(initial);
+export default function SalesInvoiceDetail({ invoice, products }) {
   const [showAddLine, setShowAddLine] = useState(false);
   const [savingFooter, setSavingFooter] = useState(false);
   const [lockingHeader, setLockingHeader] = useState(false);
@@ -35,6 +34,13 @@ export default function SalesInvoiceDetail({ invoice: initial, products }) {
     deliveryCost: parseFloat(invoice.deliveryCost),
     amountPaid: parseFloat(invoice.amountPaid),
   });
+
+  useEffect(() => {
+    setFooterValues({
+      deliveryCost: parseFloat(invoice.deliveryCost),
+      amountPaid: parseFloat(invoice.amountPaid),
+    });
+  }, [invoice.deliveryCost, invoice.amountPaid]);
 
   const [globalError, setGlobalError] = useState("");
   const [globalSuccess, setGlobalSuccess] = useState("");

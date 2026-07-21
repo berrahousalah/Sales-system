@@ -239,7 +239,7 @@ export async function addLineToSalesInvoice(data) {
           quantity,
           sellingPrice,
           purchasePriceSnapshot: batch.purchasePrice,
-          soldSerials: soldSerials,
+          soldSerials: JSON.stringify(soldSerials),
         },
       });
 
@@ -313,7 +313,7 @@ export async function updateSalesInvoiceLine(data) {
       if (batch.importInvoiceLine?.isSerialised && delta !== 0) {
         if (delta < 0) {
           // Returning serials — mark them as not sold
-          const returningSerials = line.soldSerials.slice(0, Math.abs(delta));
+          const returningSerials = (typeof line.soldSerials === 'string' ? JSON.parse(line.soldSerials || '[]') : (line.soldSerials || [])).slice(0, Math.abs(delta));
           await tx.serialNumber.updateMany({
             where: { serial: { in: returningSerials } },
             data: { isSold: false },
@@ -350,12 +350,12 @@ export async function updateSalesInvoiceLine(data) {
       // Update the sales invoice line
       const newSoldSerials =
         batch.importInvoiceLine?.isSerialised && delta < 0
-          ? line.soldSerials.slice(Math.abs(delta)) // remove returned serials from front
-          : [...line.soldSerials, ...soldSerials];
+          ? (typeof line.soldSerials === 'string' ? JSON.parse(line.soldSerials || '[]') : (line.soldSerials || [])).slice(Math.abs(delta)) // remove returned serials from front
+          : [...(typeof line.soldSerials === 'string' ? JSON.parse(line.soldSerials || '[]') : (line.soldSerials || [])), ...soldSerials];
 
       await tx.salesInvoiceLine.update({
         where: { id: lineId },
-        data: { quantity, sellingPrice, soldSerials: newSoldSerials },
+        data: { quantity, sellingPrice, soldSerials: JSON.stringify(newSoldSerials) },
       });
 
       // Recalculate totals + sync customer debt delta
@@ -572,8 +572,8 @@ export async function searchSalesInvoices(query) {
     const invoices = await prisma.salesInvoice.findMany({
       where: {
         OR: [
-          { invoiceNumber: { contains: query, mode: "insensitive" } },
-          { customer: { name: { contains: query, mode: "insensitive" } } },
+          { invoiceNumber: { contains: query } },
+          { customer: { name: { contains: query } } },
         ],
       },
       include: { customer: true },

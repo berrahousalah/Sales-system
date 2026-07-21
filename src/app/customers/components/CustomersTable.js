@@ -1,11 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import { Users, HandCoins } from "lucide-react";
+import { Users, HandCoins, Trash2, SlidersHorizontal, Loader2, AlertCircle } from "lucide-react";
 import CollectDebtModal from "./CollectDebtModal";
+import AdjustDebtModal from "./AdjustDebtModal";
+import { deleteCustomer } from "../actions";
+import { useRouter } from "next/navigation";
 
 export default function CustomersTable({ initialCustomers }) {
   const [selectedCustomer, setSelectedCustomer] = useState(null);
+  const [selectedCustomerForAdjust, setSelectedCustomerForAdjust] = useState(null);
+  const [deletingId, setDeletingId] = useState(null);
+  const [deleteError, setDeleteError] = useState("");
+  const router = useRouter();
+
+  const handleDelete = async (customer) => {
+    const totalDebt = parseFloat(customer.totalDebt);
+    if (totalDebt > 0) return; // button is disabled, but guard anyway
+
+    if (!confirm(`Delete customer "${customer.name}"? This action cannot be undone.`)) return;
+
+    setDeletingId(customer.id);
+    setDeleteError("");
+    const result = await deleteCustomer(customer.id);
+    if (result.success) {
+      router.refresh();
+    } else {
+      setDeleteError(result.message);
+    }
+    setDeletingId(null);
+  };
 
   if (initialCustomers.length === 0) {
     return (
@@ -24,6 +48,13 @@ export default function CustomersTable({ initialCustomers }) {
 
   return (
     <>
+      {deleteError && (
+        <div className="flex items-start gap-2 mt-4 p-3 bg-red-50 border border-red-100 text-red-600 rounded-lg text-sm">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          {deleteError}
+        </div>
+      )}
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mt-6">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm whitespace-nowrap">
@@ -38,6 +69,7 @@ export default function CustomersTable({ initialCustomers }) {
               {initialCustomers.map((customer) => {
                 const totalDebt = parseFloat(customer.totalDebt);
                 const hasDebt = totalDebt > 0;
+                const isDeleting = deletingId === customer.id;
 
                 return (
                   <tr key={customer.id} className="hover:bg-gray-50/50 transition-colors group">
@@ -62,6 +94,17 @@ export default function CustomersTable({ initialCustomers }) {
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
+                        {/* Adjust Debt */}
+                        <button
+                          onClick={() => setSelectedCustomerForAdjust(customer)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 rounded-md transition-colors font-medium text-xs"
+                          title="Manually adjust debt balance"
+                        >
+                          <SlidersHorizontal className="w-3.5 h-3.5" />
+                          Adjust Debt
+                        </button>
+
+                        {/* Collect Debt */}
                         <button
                           onClick={() => setSelectedCustomer(customer)}
                           disabled={!hasDebt}
@@ -70,6 +113,21 @@ export default function CustomersTable({ initialCustomers }) {
                         >
                           <HandCoins className="w-3.5 h-3.5" />
                           Collect Debt
+                        </button>
+
+                        {/* Delete */}
+                        <button
+                          onClick={() => handleDelete(customer)}
+                          disabled={hasDebt || isDeleting}
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 rounded-md transition-colors font-medium text-xs disabled:opacity-40 disabled:cursor-not-allowed"
+                          title={hasDebt ? "Cannot delete: outstanding debt exists" : "Delete customer"}
+                        >
+                          {isDeleting ? (
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-3.5 h-3.5" />
+                          )}
+                          Delete
                         </button>
                       </div>
                     </td>
@@ -85,6 +143,13 @@ export default function CustomersTable({ initialCustomers }) {
         <CollectDebtModal
           customer={selectedCustomer}
           onClose={() => setSelectedCustomer(null)}
+        />
+      )}
+
+      {selectedCustomerForAdjust && (
+        <AdjustDebtModal
+          customer={selectedCustomerForAdjust}
+          onClose={() => setSelectedCustomerForAdjust(null)}
         />
       )}
     </>

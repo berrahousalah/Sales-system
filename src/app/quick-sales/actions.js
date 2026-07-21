@@ -223,12 +223,14 @@ export async function searchQuickSales(query) {
     const term = query.trim();
     if (!term) return await getQuickSalesHistory();
 
+    // SQLite-compatible search: contains (maps to LIKE) is case-insensitive for ASCII by default.
+    // soldSerials is stored as a JSON string — substring match catches serial numbers within the array.
     const sales = await prisma.quickSale.findMany({
       where: {
         isReturned: false,
         OR: [
-          { batch: { product: { name: { contains: term, mode: "insensitive" } } } },
-          { soldSerials: { has: term } },
+          { batch: { product: { name: { contains: term } } } },
+          { soldSerials: { contains: term } },
         ],
       },
       include: { batch: { include: { product: true } } },

@@ -138,7 +138,7 @@ export function serializeSalesInvoiceLine(line) {
     quantity: line.quantity,
     sellingPrice: toFloat(line.sellingPrice),
     purchasePriceSnapshot: toFloat(line.purchasePriceSnapshot),
-    soldSerials: line.soldSerials ?? [],
+    soldSerials: typeof line.soldSerials === 'string' ? JSON.parse(line.soldSerials || '[]') : (line.soldSerials || []),
     batch: line.batch ? {
       id: line.batch.id,
       quantityRemaining: line.batch.quantityRemaining,
@@ -166,7 +166,7 @@ export function serializeQuickSale(qs) {
     sellingPrice: toFloat(qs.sellingPrice),
     totalAmount: toFloat(qs.totalAmount),
     purchasePriceSnapshot: toFloat(qs.purchasePriceSnapshot),
-    soldSerials: qs.soldSerials ?? [],
+    soldSerials: typeof qs.soldSerials === 'string' ? JSON.parse(qs.soldSerials || '[]') : (qs.soldSerials || []),
     saleDate: qs.saleDate instanceof Date ? qs.saleDate.toISOString() : qs.saleDate,
     isReturned: qs.isReturned,
     batch: qs.batch
@@ -202,7 +202,7 @@ export function serializeInventoryAdjustment(adj) {
     reason: adj.reason,
     purchasePriceSnapshot: toFloat(adj.purchasePriceSnapshot),
     financialLoss: toFloat(adj.financialLoss),
-    adjustedSerials: adj.adjustedSerials ?? [],
+    adjustedSerials: typeof adj.adjustedSerials === 'string' ? JSON.parse(adj.adjustedSerials || '[]') : (adj.adjustedSerials || []),
     createdAt: adj.createdAt instanceof Date ? adj.createdAt.toISOString() : adj.createdAt,
     batch: adj.batch
       ? {

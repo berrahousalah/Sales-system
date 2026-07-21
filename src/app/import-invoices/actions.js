@@ -290,7 +290,11 @@ const UpdateLineSchema = z.object({
   quantity: z.number().int().positive(),
   purchasePrice: z.number().positive(),
   retailPrice: z.number().positive(),
-  serials: z.array(z.string().trim().min(1)).optional().default([]),
+  // For serialised batches:
+  //   newSerials: serial numbers for newly ADDED units (length must equal quantityDelta when delta > 0)
+  //   removedSerials: serial numbers to REMOVE from inventory pool (length must equal abs(quantityDelta) when delta < 0)
+  newSerials: z.array(z.string().trim().min(1)).optional().default([]),
+  removedSerials: z.array(z.string().trim().min(1)).optional().default([]),
 });
 
 export async function updateInvoiceLine(data) {
@@ -298,7 +302,7 @@ export async function updateInvoiceLine(data) {
     const parsed = UpdateLineSchema.safeParse(data);
     if (!parsed.success) return { success: false, message: parsed.error.errors[0].message };
 
-    const { lineId, quantity, purchasePrice, retailPrice, serials } = parsed.data;
+    const { lineId, quantity, purchasePrice, retailPrice, newSerials, removedSerials } = parsed.data;
 
     const result = await prisma.$transaction(async (tx) => {
       const line = await tx.importInvoiceLine.findUnique({
@@ -311,51 +315,90 @@ export async function updateInvoiceLine(data) {
       const invoice = line.importInvoice;
       const oldQuantity = line.quantity;
       const oldPurchasePrice = parseFloat(line.purchasePrice);
+      const quantitySold = line.quantitySold ?? 0;
+      const hasSales = quantitySold > 0;
 
-      // ── ROW LOCK ENFORCEMENT ─────────────────────────────────────
-      if (line.isLocked) {
-        // Cannot decrease quantity below units already sold
-        if (quantity < line.quantitySold)
-          throw new Error(
-            `Cannot reduce quantity below units already sold (${line.quantitySold}).`
-          );
-        // Price field is Read-Only on locked rows
-        if (parseFloat(purchasePrice) !== oldPurchasePrice)
-          throw new Error("Purchase price is locked because units from this batch have been sold.");
-        // Cannot re-assign individual serial numbers on a locked row
-        if (line.isSerialised && serials.length > 0)
-          throw new Error("Serial numbers are locked for this batch.");
-      }
-      // ─────────────────────────────────────────────────────────────
+      // ── GRANULAR LOCK ENFORCEMENT ──────────────────────────────────
+      // Rule 1: Quantity cannot drop below already-sold units
+      if (quantity < quantitySold)
+        throw new Error(`Cannot reduce quantity below units already sold (${quantitySold}).`);
+
+      // Rule 2: Purchase price is read-only once any unit has been sold
+      if (hasSales && parseFloat(purchasePrice) !== oldPurchasePrice)
+        throw new Error("Purchase price cannot be changed after units from this batch have been sold.");
+
+      // Rule 3: isSerialised toggle is immutable (enforced at DB level — field not editable here)
+      // ──────────────────────────────────────────────────────────────
 
       const quantityDelta = quantity - oldQuantity;
 
-      // Validate new serial numbers if serialised and unlocked
-      if (line.isSerialised && !line.isLocked && serials.length > 0) {
-        if (serials.length !== quantity)
-          throw new Error(`Expected ${quantity} serial numbers but received ${serials.length}.`);
+      // ── SERIAL NUMBER MANAGEMENT ───────────────────────────────────
+      if (line.isSerialised && quantityDelta !== 0) {
+        if (quantityDelta > 0) {
+          // ADDING units: require exactly delta new serial numbers
+          if (newSerials.length !== quantityDelta)
+            throw new Error(`Please provide ${quantityDelta} new serial number(s) for the added unit(s). Received ${newSerials.length}.`);
+
+          // Validate uniqueness across inventory
+          const duplicate = await tx.serialNumber.findFirst({
+            where: { serial: { in: newSerials } },
+          });
+          if (duplicate)
+            throw new Error(`Serial number "${duplicate.serial}" already exists in inventory.`);
+
+          // Create the new serial records
+          await tx.serialNumber.createMany({
+            data: newSerials.map((s) => ({ serial: s, importInvoiceLineId: lineId })),
+          });
+
+        } else {
+          // REMOVING units: require exactly abs(delta) serial numbers to delete
+          const removeCount = Math.abs(quantityDelta);
+          if (removedSerials.length !== removeCount)
+            throw new Error(`Please select ${removeCount} serial number(s) to remove. Received ${removedSerials.length}.`);
+
+          // Verify the provided serials belong to this line and are not sold
+          const snRecords = await tx.serialNumber.findMany({
+            where: { serial: { in: removedSerials }, importInvoiceLineId: lineId },
+          });
+          if (snRecords.length !== removeCount)
+            throw new Error("One or more selected serials do not belong to this batch.");
+
+          const soldSn = snRecords.find((s) => s.isSold || s.isReturned);
+          if (soldSn)
+            throw new Error(`Serial "${soldSn.serial}" has already been sold and cannot be removed.`);
+
+          // Delete the chosen serial records
+          await tx.serialNumber.deleteMany({
+            where: { serial: { in: removedSerials }, importInvoiceLineId: lineId },
+          });
+        }
+      } else if (line.isSerialised && quantityDelta === 0 && !hasSales && newSerials.length > 0) {
+        // Qty unchanged, replacing all unsold serials (only allowed when no sales)
+        if (newSerials.length !== quantity)
+          throw new Error(`Expected ${quantity} serial numbers but received ${newSerials.length}.`);
 
         const existingSerials = line.serialNumbers.map((s) => s.serial);
-        const newSerials = serials.filter((s) => !existingSerials.includes(s));
+        const brandNewSerials = newSerials.filter((s) => !existingSerials.includes(s));
 
-        if (newSerials.length > 0) {
+        if (brandNewSerials.length > 0) {
           const duplicate = await tx.serialNumber.findFirst({
-            where: { serial: { in: newSerials }, importInvoiceLineId: { not: lineId } },
+            where: { serial: { in: brandNewSerials }, importInvoiceLineId: { not: lineId } },
           });
           if (duplicate)
             throw new Error(`Serial number "${duplicate.serial}" already exists in inventory.`);
         }
 
-        // Replace all serial numbers
         await tx.serialNumber.deleteMany({
           where: { importInvoiceLineId: lineId, isSold: false, isReturned: false },
         });
         await tx.serialNumber.createMany({
-          data: serials.map((s) => ({ serial: s, importInvoiceLineId: lineId })),
+          data: newSerials.map((s) => ({ serial: s, importInvoiceLineId: lineId })),
         });
       }
+      // ──────────────────────────────────────────────────────────────
 
-      // Update line record
+      // Update line record (purchasePrice unchanged if hasSales, but we use the validated value)
       await tx.importInvoiceLine.update({
         where: { id: lineId },
         data: { quantity, purchasePrice, retailPrice },
@@ -369,8 +412,9 @@ export async function updateInvoiceLine(data) {
           data: {
             quantityReceived: { increment: quantityDelta },
             quantityRemaining: newRemaining,
-            purchasePrice,
-            retailPrice,
+            // Only update prices when no sales exist
+            ...(!hasSales && { purchasePrice, retailPrice }),
+            ...(hasSales && { retailPrice }),
           },
         });
       }
@@ -590,8 +634,8 @@ export async function searchInvoices(query) {
     const invoices = await prisma.importInvoice.findMany({
       where: {
         OR: [
-          { invoiceNumber: { contains: query, mode: "insensitive" } },
-          { supplier: { name: { contains: query, mode: "insensitive" } } },
+          { invoiceNumber: { contains: query } },
+          { supplier: { name: { contains: query } } },
         ],
       },
       include: { supplier: true },
