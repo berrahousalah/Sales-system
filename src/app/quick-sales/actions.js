@@ -150,10 +150,21 @@ export async function returnQuickSale(saleId) {
       const { quantity, batchId, batch, soldSerials } = sale;
 
       // Restore serial numbers
-      if (soldSerials.length > 0) {
+      let serialsToRestore = [];
+      if (typeof sale.soldSerials === 'string') {
+        try {
+          serialsToRestore = JSON.parse(sale.soldSerials);
+        } catch (e) {
+          serialsToRestore = sale.soldSerials ? [sale.soldSerials] : [];
+        }
+      } else if (Array.isArray(sale.soldSerials)) {
+        serialsToRestore = sale.soldSerials;
+      }
+
+      if (Array.isArray(serialsToRestore) && serialsToRestore.length > 0) {
         await tx.serialNumber.updateMany({
-          where: { serial: { in: soldSerials } },
-          data: { isSold: false },
+          where: { serial: { in: serialsToRestore } },
+          data: { isSold: false }
         });
       }
 

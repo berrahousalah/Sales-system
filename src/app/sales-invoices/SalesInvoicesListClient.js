@@ -97,9 +97,17 @@ export default function SalesInvoicesListClient({ invoices: initialInvoices }) {
       {serialResult && (
         <div className="bg-indigo-50 border border-indigo-200 rounded-xl p-4">
           <h3 className="text-sm font-semibold text-indigo-800 mb-3">
-            N/S Trouvé : <span className="font-mono">{searchQuery.trim()}</span>
+            N/S Trouvé : <span className="font-mono">{serialResult.serial}</span>
           </h3>
           <div className="grid grid-cols-2 gap-3 text-sm">
+            <div>
+              <span className="text-gray-700 font-medium">Produit :</span>{" "}
+              <span className="font-semibold">{serialResult.product?.name}</span>
+            </div>
+            <div>
+              <span className="text-gray-700 font-medium">Fournisseur :</span>{" "}
+              <span className="font-semibold">{serialResult.supplier?.name}</span>
+            </div>
             <div>
               <span className="text-gray-700 font-medium">Client :</span>{" "}
               <span className="font-semibold">{serialResult.invoice.customer.name}</span>
@@ -116,6 +124,18 @@ export default function SalesInvoicesListClient({ invoices: initialInvoices }) {
             <div>
               <span className="text-gray-700 font-medium">Date :</span>{" "}
               <span className="font-semibold">{new Date(serialResult.invoice.invoiceDate).toLocaleDateString()}</span>
+            </div>
+            <div>
+              <span className="text-gray-700 font-medium">Statut :</span>{" "}
+              <span
+                className={`px-2 py-0.5 rounded text-xs font-medium ${
+                  serialResult.isReturned
+                    ? "bg-gray-200 text-gray-700"
+                    : "bg-indigo-200 text-indigo-800"
+                }`}
+              >
+                {serialResult.isReturned ? "Retourné" : "Vendu"}
+              </span>
             </div>
           </div>
         </div>

@@ -581,30 +581,54 @@ export async function searchSalesInvoices(query) {
 
 export async function searchSalesBySerial(serial) {
   try {
-    const sn = await prisma.serialNumber.findUnique({
-      where: { serial: serial.trim() },
+    const s = serial.trim();
+    if (!s) return { success: false, message: "Serial is empty." };
+
+    // Query SalesInvoiceLine directly since soldSerials is a string in SQLite.
+    // We use `contains` for a fast initial filter, then exactly match in JS.
+    const lines = await prisma.salesInvoiceLine.findMany({
+      where: {
+        soldSerials: { contains: s },
+      },
       include: {
-        importInvoiceLine: {
+        salesInvoice: { include: { customer: true } },
+        batch: {
           include: {
-            batch: {
-              include: {
-                salesLines: {
-                  include: { salesInvoice: { include: { customer: true } } },
-                },
-              },
-            },
+            product: true,
+            supplier: true,
           },
         },
       },
+      orderBy: { salesInvoice: { createdAt: "desc" } },
     });
-    if (!sn || !sn.isSold) {
-      return { success: false, message: `Serial "${serial}" not found in any sales invoice.` };
+
+    // Safely parse and find the exact match
+    const matchingLine = lines.find((l) => {
+      if (!l.soldSerials) return false;
+      try {
+        const arr = JSON.parse(l.soldSerials);
+        if (Array.isArray(arr)) {
+          return arr.includes(s);
+        }
+      } catch (e) {}
+      
+      // Fallback: check if it's stored as plain string or comma-separated
+      return l.soldSerials === s || l.soldSerials.split(',').map(x => x.trim()).includes(s);
+    });
+
+    if (!matchingLine) {
+      return { success: false, message: `Serial "${s}" not found in any active sales invoice.` };
     }
-    // Find the sales invoice line that contains this serial
-    const allSalesLines = sn.importInvoiceLine.batch?.salesLines ?? [];
-    const matchingLine = allSalesLines.find((l) => l.soldSerials.includes(serial.trim()));
-    if (!matchingLine) return { success: false, message: "Could not locate the invoice for this serial." };
-    return { success: true, invoice: matchingLine.salesInvoice, lineId: matchingLine.id };
+
+    return { 
+      success: true, 
+      invoice: matchingLine.salesInvoice, 
+      lineId: matchingLine.id,
+      serial: s,
+      product: matchingLine.batch.product,
+      supplier: matchingLine.batch.supplier,
+      isReturned: false // Direct sale lines represent sold items
+    };
   } catch (error) {
     return { success: false, message: "Serial search failed." };
   }
