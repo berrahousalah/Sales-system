@@ -4,8 +4,8 @@ import SalesInvoicesListClient from "./SalesInvoicesListClient";
 import { FileText, Plus, ArrowLeft } from "lucide-react";
 
 export const metadata = {
-  title: "Sales Invoices | ERP System",
-  description: "Manage customer sales invoices and debt tracking.",
+  title: "Factures de Vente | ERP TechnoLink",
+  description: "Gérer les factures clients et le suivi des créances.",
 };
 
 export default async function SalesInvoicesPage() {
@@ -26,9 +26,9 @@ export default async function SalesInvoicesPage() {
               <FileText className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Sales Invoices</h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Formal sales orders, pay-on-delivery tracking, and customer debt ledger
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Factures de Vente</h1>
+              <p className="text-sm text-gray-700 font-medium mt-1">
+                Commandes clients, livraison à la commande et gestion des dettes
               </p>
             </div>
           </div>
@@ -37,7 +37,7 @@ export default async function SalesInvoicesPage() {
             className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors shrink-0"
           >
             <Plus className="w-5 h-5" />
-            New Sales Invoice
+            Nouvelle Facture de Vente
           </Link>
         </div>
 

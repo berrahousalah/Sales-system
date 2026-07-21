@@ -16,9 +16,9 @@ export default function CustomersTable({ initialCustomers }) {
 
   const handleDelete = async (customer) => {
     const totalDebt = parseFloat(customer.totalDebt);
-    if (totalDebt > 0) return; // button is disabled, but guard anyway
+    if (totalDebt > 0) return;
 
-    if (!confirm(`Delete customer "${customer.name}"? This action cannot be undone.`)) return;
+    if (!confirm(`Supprimer le client "${customer.name}" ? Cette action est irréversible.`)) return;
 
     setDeletingId(customer.id);
     setDeleteError("");
@@ -37,10 +37,9 @@ export default function CustomersTable({ initialCustomers }) {
         <div className="w-16 h-16 bg-indigo-50 rounded-full flex items-center justify-center mb-4">
           <Users className="w-8 h-8 text-indigo-500" />
         </div>
-        <h3 className="text-lg font-medium text-gray-900 mb-1">No customers found</h3>
-        <p className="text-gray-500 text-center max-w-sm">
-          Get started by creating your first customer. Customers must be registered before creating
-          Sales Invoices.
+        <h3 className="text-lg font-medium text-gray-900 mb-1">Aucun client trouvé</h3>
+        <p className="text-gray-700 font-medium text-center max-w-sm">
+          Commencez par créer votre premier client. Les clients doivent être enregistrés avant de créer des factures de vente.
         </p>
       </div>
     );
@@ -60,8 +59,8 @@ export default function CustomersTable({ initialCustomers }) {
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-gray-50 text-gray-700 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-4 font-semibold">Customer Name</th>
-                <th className="px-6 py-4 font-semibold text-right">Outstanding Debt</th>
+                <th className="px-6 py-4 font-semibold">Nom du Client</th>
+                <th className="px-6 py-4 font-semibold text-right">Dette Restante</th>
                 <th className="px-6 py-4 font-semibold text-right">Actions</th>
               </tr>
             </thead>
@@ -89,7 +88,7 @@ export default function CustomersTable({ initialCustomers }) {
                             : "bg-green-50 text-green-700 border border-green-100"
                         }`}
                       >
-                        ${totalDebt.toFixed(2)}
+                        {totalDebt.toFixed(2)} DZD
                       </span>
                     </td>
                     <td className="px-6 py-4 text-right">
@@ -98,10 +97,10 @@ export default function CustomersTable({ initialCustomers }) {
                         <button
                           onClick={() => setSelectedCustomerForAdjust(customer)}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 rounded-md transition-colors font-medium text-xs"
-                          title="Manually adjust debt balance"
+                          title="Ajuster manuellement la dette"
                         >
                           <SlidersHorizontal className="w-3.5 h-3.5" />
-                          Adjust Debt
+                          Ajuster la Dette
                         </button>
 
                         {/* Collect Debt */}
@@ -109,10 +108,10 @@ export default function CustomersTable({ initialCustomers }) {
                           onClick={() => setSelectedCustomer(customer)}
                           disabled={!hasDebt}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 rounded-md transition-colors font-medium text-xs disabled:opacity-40 disabled:cursor-not-allowed"
-                          title={hasDebt ? "Collect Debt (FIFO)" : "No outstanding debt"}
+                          title={hasDebt ? "Encaisser la dette (FIFO)" : "Aucune dette en cours"}
                         >
                           <HandCoins className="w-3.5 h-3.5" />
-                          Collect Debt
+                          Encaisser
                         </button>
 
                         {/* Delete */}
@@ -120,14 +119,14 @@ export default function CustomersTable({ initialCustomers }) {
                           onClick={() => handleDelete(customer)}
                           disabled={hasDebt || isDeleting}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-600 border border-red-100 rounded-md transition-colors font-medium text-xs disabled:opacity-40 disabled:cursor-not-allowed"
-                          title={hasDebt ? "Cannot delete: outstanding debt exists" : "Delete customer"}
+                          title={hasDebt ? "Impossible de supprimer : dette existante" : "Supprimer le client"}
                         >
                           {isDeleting ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           ) : (
                             <Trash2 className="w-3.5 h-3.5" />
                           )}
-                          Delete
+                          Supprimer
                         </button>
                       </div>
                     </td>

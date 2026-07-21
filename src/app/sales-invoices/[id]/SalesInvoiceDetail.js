@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import AddSalesLineModal from "./AddSalesLineModal";
+import ScanSerialRemoval from "@/components/ui/ScanSerialRemoval";
 import {
   lockSalesInvoiceHeader,
   updateSalesInvoiceLine,
@@ -182,10 +183,10 @@ export default function SalesInvoiceDetail({ invoice, products }) {
             </Link>
             <div>
               <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                Sales Invoice <span className="text-indigo-700">{invoice.invoiceNumber}</span>
+                Facture de Vente <span className="text-indigo-700">{invoice.invoiceNumber}</span>
               </h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Manage sale items, serials, and customer COD/debt
+              <p className="text-sm text-gray-700 font-medium mt-1">
+                Gérer les articles, N/S, et la dette client
               </p>
             </div>
           </div>
@@ -208,7 +209,7 @@ export default function SalesInvoiceDetail({ invoice, products }) {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Invoice #</span>
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-600">Facture #</span>
                 <span className="font-mono text-lg font-bold text-gray-900">{invoice.invoiceNumber}</span>
                 <span
                   className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${STATUS_STYLES[invoice.status] || "bg-gray-100 text-gray-600"
@@ -219,12 +220,12 @@ export default function SalesInvoiceDetail({ invoice, products }) {
               </div>
               <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
                 <div>
-                  <span className="text-gray-400">Customer: </span>
-                  <span className="font-medium text-gray-800">{invoice.customer.name}</span>
+                  <span className="text-gray-600 font-medium">Client : </span>
+                  <span className="font-semibold text-gray-900">{invoice.customer.name}</span>
                 </div>
                 <div>
-                  <span className="text-gray-400">Date: </span>
-                  <span className="font-medium text-gray-800">
+                  <span className="text-gray-600 font-medium">Date : </span>
+                  <span className="font-semibold text-gray-900">
                     {new Date(invoice.invoiceDate).toLocaleDateString()}
                   </span>
                 </div>
@@ -239,14 +240,14 @@ export default function SalesInvoiceDetail({ invoice, products }) {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
             <div>
-              <h2 className="font-semibold text-gray-900">Products Sold</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Edit quantity to execute a return.</p>
+              <h2 className="font-semibold text-gray-900">Produits Vendus</h2>
+              <p className="text-xs text-gray-600 font-medium mt-0.5">Réduire la quantité pour effectuer un retour partiel.</p>
             </div>
             <button
               onClick={() => setShowAddLine(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-semibold"
             >
-              <Plus className="w-4 h-4" /> Add Product
+              <Plus className="w-4 h-4" /> Ajouter un Produit
             </button>
           </div>
 
@@ -260,11 +261,11 @@ export default function SalesInvoiceDetail({ invoice, products }) {
               <table className="w-full text-sm whitespace-nowrap">
                 <thead className="bg-gray-50 text-gray-600 border-b border-gray-100 text-left">
                   <tr>
-                    <th className="px-5 py-3 font-semibold">Product</th>
-                    <th className="px-5 py-3 font-semibold">Batch</th>
-                    <th className="px-4 py-3 font-semibold text-right">Qty</th>
-                    <th className="px-4 py-3 font-semibold text-right">Selling Price</th>
-                    <th className="px-4 py-3 font-semibold text-right">Subtotal</th>
+                    <th className="px-5 py-3 font-semibold">Produit</th>
+                    <th className="px-5 py-3 font-semibold">Lot</th>
+                    <th className="px-4 py-3 font-semibold text-right">Qté</th>
+                    <th className="px-4 py-3 font-semibold text-right">Prix de Vente</th>
+                    <th className="px-4 py-3 font-semibold text-right">Sous-total</th>
                     <th className="px-4 py-3 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
@@ -285,15 +286,15 @@ export default function SalesInvoiceDetail({ invoice, products }) {
                               )}
                             </span>
                             {isSerialised && (
-                              <div className="text-xs text-gray-400 font-mono flex gap-1">
+                              <div className="text-xs text-slate-600 font-medium font-mono flex gap-1">
                                 {line.soldSerials.join(", ")}
                               </div>
                             )}
                           </div>
                         </td>
 
-                        <td className="px-5 py-4 text-gray-500">
-                          <div className="text-xs">From: {line.batch.supplier.name}</div>
+                        <td className="px-5 py-4 text-gray-700 font-medium">
+                          <div className="text-xs">De : {line.batch.supplier.name}</div>
                         </td>
 
                         {/* Quantity */}
@@ -318,40 +319,22 @@ export default function SalesInvoiceDetail({ invoice, products }) {
                                   className="w-20 px-2 py-1 border border-gray-300 rounded text-sm text-right focus:ring-2 focus:ring-indigo-400 focus:outline-none"
                                 />
                                 {lineEdits.quantity < line.quantity ? (
-                                  <div className="mt-2 p-2 bg-white border border-indigo-200 rounded-md shadow-sm text-left min-w-[200px]">
-                                    <p className="text-xs font-semibold text-indigo-700 mb-1">
-                                      Select {lineEdits.quantity} SN(s) to retain:
-                                    </p>
-                                    <div className="max-h-32 overflow-y-auto space-y-1 pr-1">
-                                      {line.soldSerials.map(sn => {
-                                        const isSelected = lineEdits.soldSerials.includes(sn);
-                                        const isDisabled = !isSelected && lineEdits.soldSerials.length >= lineEdits.quantity;
-                                        return (
-                                          <label key={sn} className={`flex items-center gap-2 p-1 rounded border text-xs cursor-pointer ${isSelected ? "bg-indigo-50 border-indigo-200" : isDisabled ? "opacity-40 cursor-not-allowed bg-gray-50 border-transparent" : "hover:bg-gray-50 border-transparent"}`}>
-                                            <input 
-                                              type="checkbox" 
-                                              checked={isSelected}
-                                              disabled={isDisabled}
-                                              onChange={() => {
-                                                setLineEdits(p => ({
-                                                  ...p,
-                                                  soldSerials: isSelected ? p.soldSerials.filter(s => s !== sn) : [...p.soldSerials, sn]
-                                                }));
-                                              }}
-                                              className="w-3 h-3"
-                                            />
-                                            <span className="font-mono">{sn}</span>
-                                          </label>
-                                        );
-                                      })}
-                                    </div>
-                                    <div className={`text-[10px] mt-1 font-medium ${lineEdits.soldSerials.length !== lineEdits.quantity ? "text-red-500" : "text-green-600"}`}>
-                                      {lineEdits.soldSerials.length} of {lineEdits.quantity} selected
-                                    </div>
-                                  </div>
+                                  <ScanSerialRemoval 
+                                    originalSerials={line.soldSerials}
+                                    selectedToRemove={line.soldSerials.filter(sn => !lineEdits.soldSerials.includes(sn))}
+                                    onToggleRemove={(sn, remove) => {
+                                      setLineEdits(p => ({
+                                        ...p,
+                                        soldSerials: remove 
+                                          ? p.soldSerials.filter(s => s !== sn)
+                                          : [...p.soldSerials, sn]
+                                      }));
+                                    }}
+                                    targetRemovalCount={line.quantity - lineEdits.quantity}
+                                  />
                                 ) : (
-                                  <div className="text-[10px] text-gray-500 max-w-[150px] whitespace-normal">
-                                    Currently retaining all SNs.
+                                  <div className="text-[10px] text-slate-500 max-w-[150px] whitespace-normal font-medium">
+                                    Aucun N/S à retirer.
                                   </div>
                                 )}
                               </div>
@@ -385,12 +368,12 @@ export default function SalesInvoiceDetail({ invoice, products }) {
                               className="w-24 px-2 py-1 border border-gray-300 rounded text-sm text-right focus:ring-2 focus:ring-indigo-400 focus:outline-none"
                             />
                           ) : (
-                            <span>${parseFloat(line.sellingPrice).toFixed(2)}</span>
+                          <span>{parseFloat(line.sellingPrice).toFixed(2)} DZD</span>
                           )}
                         </td>
 
-                        <td className="px-4 py-4 text-right font-medium text-gray-900">
-                          ${subtotal.toFixed(2)}
+                        <td className="px-4 py-4 text-right font-semibold text-gray-900">
+                          {subtotal.toFixed(2)} DZD
                         </td>
 
                         {/* Actions */}
@@ -402,7 +385,7 @@ export default function SalesInvoiceDetail({ invoice, products }) {
                                   onClick={() => handleSaveLine(line)}
                                   disabled={savingLineId === line.id}
                                   className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded transition-colors disabled:opacity-50"
-                                  title="Save"
+                                  title="Enregistrer"
                                 >
                                   {savingLineId === line.id ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -412,8 +395,8 @@ export default function SalesInvoiceDetail({ invoice, products }) {
                                 </button>
                                 <button
                                   onClick={() => setEditingLineId(null)}
-                                  className="p-1.5 text-gray-400 hover:bg-gray-100 rounded transition-colors"
-                                  title="Cancel"
+                                  className="p-1.5 text-gray-500 hover:bg-gray-100 rounded transition-colors"
+                                  title="Annuler"
                                 >
                                   <X className="w-4 h-4" />
                                 </button>
@@ -423,15 +406,15 @@ export default function SalesInvoiceDetail({ invoice, products }) {
                                 <button
                                   onClick={() => startEditLine(line)}
                                   className="p-1.5 text-blue-500 hover:bg-blue-50 rounded transition-colors text-xs font-medium flex items-center gap-1"
-                                  title="Edit / Return Partial"
+                                  title="Retour / Modifier"
                                 >
-                                  <CornerDownLeft className="w-3.5 h-3.5" /> Return / Edit
+                                  <CornerDownLeft className="w-3.5 h-3.5" /> Retour / Modifier
                                 </button>
                                 <button
                                   onClick={() => handleDeleteLine(line)}
                                   disabled={deletingLineId === line.id}
                                   className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors disabled:opacity-30"
-                                  title="Delete entire row"
+                                  title="Supprimer la ligne"
                                 >
                                   {deletingLineId === line.id ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -454,79 +437,73 @@ export default function SalesInvoiceDetail({ invoice, products }) {
 
         {/* ── FOOTER / AMOUNTS ─────────────────────────────────────── */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-          <h2 className="font-semibold text-gray-900 mb-4">Totals & COD Workflow</h2>
+          <h2 className="font-semibold text-gray-900 mb-4">Totaux & Paiement</h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Delivery Cost (Paid by Customer)
+              <label className="block text-sm font-medium text-gray-800 mb-1">
+                Frais de Livraison (DZD)
               </label>
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={footerValues.deliveryCost}
-                  onChange={(e) =>
-                    setFooterValues((p) => ({ ...p, deliveryCost: e.target.value }))
-                  }
-                  className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
-                  placeholder="0.00"
-                />
-              </div>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={footerValues.deliveryCost}
+                onChange={(e) =>
+                  setFooterValues((p) => ({ ...p, deliveryCost: e.target.value }))
+                }
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm text-gray-900 font-medium"
+                placeholder="0.00"
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Amount Paid (Cash Received)
+              <label className="block text-sm font-medium text-gray-800 mb-1">
+                Montant Payé (Espèces Reçues) (DZD)
               </label>
-              <div className="relative">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <input
-                  type="number"
-                  min="0"
-                  max={computedTotal}
-                  step="0.01"
-                  value={footerValues.amountPaid}
-                  onChange={(e) =>
-                    setFooterValues((p) => ({ ...p, amountPaid: e.target.value }))
-                  }
-                  className="w-full pl-9 pr-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-semibold text-green-700"
-                  placeholder="0.00"
-                />
-              </div>
-              <p className="text-[10px] text-gray-500 mt-1">
-                Edit this field after delivery driver returns to automatically sync customer debt.
+              <input
+                type="number"
+                min="0"
+                max={computedTotal}
+                step="0.01"
+                value={footerValues.amountPaid}
+                onChange={(e) =>
+                  setFooterValues((p) => ({ ...p, amountPaid: e.target.value }))
+                }
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm font-semibold text-green-700"
+                placeholder="0.00"
+              />
+              <p className="text-[10px] text-gray-600 font-medium mt-1">
+                Mettre à jour après la livraison pour synchroniser la dette client automatiquement.
               </p>
             </div>
           </div>
 
           {/* Computed summary */}
           <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm border border-gray-100 mb-4">
-            <div className="flex justify-between text-gray-600">
-              <span>Lines Subtotal:</span>
-              <span className="font-medium">${linesTotal.toFixed(2)}</span>
+            <div className="flex justify-between text-gray-700 font-medium">
+              <span>Sous-total lignes :</span>
+              <span className="font-semibold">{linesTotal.toFixed(2)} DZD</span>
             </div>
-            <div className="flex justify-between text-gray-600">
-              <span>Delivery Cost:</span>
-              <span className="font-medium">
-                + ${parseFloat(footerValues.deliveryCost || 0).toFixed(2)}
+            <div className="flex justify-between text-gray-700 font-medium">
+              <span>Frais de livraison :</span>
+              <span className="font-semibold">
+                + {parseFloat(footerValues.deliveryCost || 0).toFixed(2)} DZD
               </span>
             </div>
             <div className="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-2">
-              <span>Grand Total:</span>
-              <span>${computedTotal.toFixed(2)}</span>
+              <span>Total Général :</span>
+              <span>{computedTotal.toFixed(2)} DZD</span>
             </div>
-            <div className="flex justify-between text-gray-600">
-              <span>Amount Paid:</span>
-              <span className="text-green-600 font-medium">
-                - ${parseFloat(footerValues.amountPaid || 0).toFixed(2)}
+            <div className="flex justify-between text-gray-700 font-medium">
+              <span>Montant Payé :</span>
+              <span className="text-green-700 font-semibold">
+                - {parseFloat(footerValues.amountPaid || 0).toFixed(2)} DZD
               </span>
             </div>
             <div className="flex justify-between font-bold text-red-600 border-t border-gray-200 pt-2">
-              <span>Remaining Debt (Transferred to Customer):</span>
-              <span>${computedDebt.toFixed(2)}</span>
+              <span>Reste Dû (Client) :</span>
+              <span>{computedDebt.toFixed(2)} DZD</span>
             </div>
           </div>
 
@@ -536,7 +513,7 @@ export default function SalesInvoiceDetail({ invoice, products }) {
             className="flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition-colors text-sm font-medium"
           >
             {savingFooter ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save Amounts & Sync Customer Debt
+            Enregistrer & Synchroniser la Dette Client
           </button>
         </div>
       </div>

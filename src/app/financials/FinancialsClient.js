@@ -72,10 +72,10 @@ export default function FinancialsClient({ archives }) {
   const handleCloseMonth = async (e) => {
     e.preventDefault();
     if (!closingMonthId.match(/^\d{4}-\d{2}$/)) {
-      return showMsg("Closing month must be in YYYY-MM format.", true);
+      return showMsg("Le mois de clôture doit être au format AAAA-MM.", true);
     }
     
-    if (!confirm(`Are you absolutely sure you want to CLOSE month ${closingMonthId}? This action is mathematically irreversible. The snapshot will be permanently frozen.`)) {
+    if (!confirm(`Confirmez-vous la CLÔTURE du mois ${closingMonthId} ? Cette action est irréversible. L'instantané sera gelé définitivement.`)) {
       return;
     }
 
@@ -93,13 +93,13 @@ export default function FinancialsClient({ archives }) {
   const renderMetricCard = (title, value, icon, isNegative = false) => (
     <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between">
       <div className="flex justify-between items-start mb-4">
-        <h3 className="text-sm font-medium text-gray-500">{title}</h3>
+        <h3 className="text-sm font-semibold text-gray-700">{title}</h3>
         <div className={`p-2 rounded-lg ${isNegative ? "bg-red-50 text-red-600" : "bg-emerald-50 text-emerald-600"}`}>
           {icon}
         </div>
       </div>
       <div className="flex items-baseline gap-1">
-        <span className="text-xl font-bold text-gray-900">${parseFloat(value).toLocaleString("en-US", {minimumFractionDigits: 2})}</span>
+        <span className="text-xl font-bold text-gray-900">{parseFloat(value).toLocaleString("fr-DZ", {minimumFractionDigits: 2})} DZD</span>
       </div>
     </div>
   );
@@ -128,17 +128,17 @@ export default function FinancialsClient({ archives }) {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5 border-b border-gray-50 pb-4">
             <div>
               <h2 className="font-bold text-gray-900 flex items-center gap-2">
-                <Activity className="w-5 h-5 text-emerald-600" /> Dynamic Financial Metrics
+                <Activity className="w-5 h-5 text-emerald-600" /> Métriques Financières Dynamiques
               </h2>
-              <p className="text-xs text-gray-500 mt-1 leading-relaxed max-w-lg">
-                These numbers aggregate live data. If a transaction from a closed month is retroactively returned today, the Transaction Ledger organically absorbs the negative delta here to balance global equity.
+              <p className="text-xs text-gray-600 font-medium mt-1 leading-relaxed max-w-lg">
+                Ces données sont calculées en temps réel. Les retours sur des mois clôturés sont automatiquement intégrés dans les calculs courants.
               </p>
             </div>
           </div>
           
           <form onSubmit={handleQuery} className="flex flex-col sm:flex-row gap-4 items-end">
             <div className="w-full sm:w-auto">
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">From Date</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Du</label>
               <input
                 type="date"
                 value={startDate}
@@ -148,7 +148,7 @@ export default function FinancialsClient({ archives }) {
               />
             </div>
             <div className="w-full sm:w-auto">
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5 uppercase tracking-wide">To Date</label>
+              <label className="block text-xs font-semibold text-gray-700 mb-1.5 uppercase tracking-wide">Au</label>
               <input
                 type="date"
                 value={endDate}
@@ -163,7 +163,7 @@ export default function FinancialsClient({ archives }) {
               className="w-full sm:w-auto px-5 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 font-medium disabled:opacity-50 transition-colors flex items-center justify-center gap-2 shadow-sm"
             >
               {isPending ? <RefreshCcw className="w-4 h-4 animate-spin" /> : <RefreshCcw className="w-4 h-4" />}
-              Recalculate Real-Time
+              Recalculer en Temps Réel
             </button>
           </form>
 
@@ -171,47 +171,47 @@ export default function FinancialsClient({ archives }) {
           {metrics ? (
             <div className="mt-8 space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                {renderMetricCard("Gross Revenue", metrics.totalRevenue, <DollarSign className="w-5 h-5" />)}
-                {renderMetricCard("Cost of Goods Sold (COGS)", metrics.totalCOGS, <TrendingDown className="w-5 h-5" />, true)}
-                {renderMetricCard("Gross Profit", metrics.grossProfit, <TrendingUp className="w-5 h-5" />)}
+                {renderMetricCard("Chiffre d'Affaires Brut", metrics.totalRevenue, <DollarSign className="w-5 h-5" />)}
+                {renderMetricCard("Coût des Marchandises (CMV)", metrics.totalCOGS, <TrendingDown className="w-5 h-5" />, true)}
+                {renderMetricCard("Bénéfice Brut", metrics.grossProfit, <TrendingUp className="w-5 h-5" />)}
               </div>
               
               <div className="bg-gray-50 rounded-xl p-5 border border-gray-100">
-                <h3 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Operating Expenses (OPEX)</h3>
+                <h3 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wide">Dépenses Opérationnelles (OPEX)</h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm">
-                    <span className="text-gray-500 text-sm">Logistics / Shipping</span>
-                    <span className="font-semibold text-red-600">-${parseFloat(metrics.totalLogisticsExpenses).toLocaleString("en-US", {minimumFractionDigits:2})}</span>
+                    <span className="text-gray-700 font-medium text-sm">Logistique / Transport</span>
+                    <span className="font-semibold text-red-600">-{parseFloat(metrics.totalLogisticsExpenses).toLocaleString("fr-DZ", {minimumFractionDigits:2})} DZD</span>
                   </div>
                   <div className="flex justify-between items-center bg-white p-3 rounded-lg shadow-sm">
-                    <span className="text-gray-500 text-sm">Inventory Write-offs (Loss)</span>
-                    <span className="font-semibold text-red-600">-${parseFloat(metrics.totalAdjustmentLosses).toLocaleString("en-US", {minimumFractionDigits:2})}</span>
+                    <span className="text-gray-700 font-medium text-sm">Pertes Inventaire (Ajustements)</span>
+                    <span className="font-semibold text-red-600">-{parseFloat(metrics.totalAdjustmentLosses).toLocaleString("fr-DZ", {minimumFractionDigits:2})} DZD</span>
                   </div>
                 </div>
               </div>
 
               <div className="bg-emerald-600 text-white rounded-xl p-6 shadow-md flex justify-between items-center">
                 <div>
-                  <h3 className="text-emerald-100 font-medium mb-1">Calculated Net Profit</h3>
-                  <p className="text-xs text-emerald-200">Gross Profit minus OPEX</p>
+                  <h3 className="text-emerald-100 font-medium mb-1">Bénéfice Net Calculé</h3>
+                  <p className="text-xs text-emerald-200">Bénéfice Brut moins OPEX</p>
                 </div>
                 <div className="text-3xl font-extrabold tracking-tight">
-                  ${parseFloat(metrics.finalNetProfit).toLocaleString("en-US", {minimumFractionDigits: 2})}
+                  {parseFloat(metrics.finalNetProfit).toLocaleString("fr-DZ", {minimumFractionDigits: 2})} DZD
                 </div>
               </div>
 
               {metrics.ledgerCount > 0 && (
                 <div className="p-3 bg-blue-50 border border-blue-100 rounded-lg flex items-start gap-2">
                   <ShieldCheck className="w-4 h-4 text-blue-600 mt-0.5" />
-                  <p className="text-xs text-blue-800 leading-relaxed">
-                    <strong>Integrity Notice:</strong> {metrics.ledgerCount} retroactive adjustment(s) (returns on historic closed months) were algorithmically absorbed into this period's dynamic calculations to protect archival integrity.
+                  <p className="text-xs text-blue-800 font-medium leading-relaxed">
+                    <strong>Avis d'intégrité :</strong> {metrics.ledgerCount} ajustement(s) rétroactif(s) sur des mois clôturés ont été intégrés dans les calculs courants.
                   </p>
                 </div>
               )}
             </div>
           ) : (
-            <div className="mt-8 text-center py-10 bg-gray-50 rounded-xl border border-gray-100 border-dashed text-gray-400">
-              Select a date range and click Recalculate to generate metrics.
+            <div className="mt-8 text-center py-10 bg-gray-50 rounded-xl border border-gray-100 border-dashed text-gray-500 font-medium">
+              Sélectionnez une période et cliquez sur Recalculer pour générer les métriques.
             </div>
           )}
         </div>
@@ -222,16 +222,16 @@ export default function FinancialsClient({ archives }) {
           
           <div className="flex items-center gap-3 mb-4">
             <FileLock2 className="w-6 h-6 text-rose-400" />
-            <h2 className="text-lg font-bold text-white">Execute Month-End Close</h2>
+            <h2 className="text-lg font-bold text-white">Exécuter la Clôture Mensuelle</h2>
           </div>
-          <p className="text-sm leading-relaxed mb-6 text-slate-400 max-w-2xl">
-            This operational routine captures a permanent, read-only snapshot of the exact financial state for a specific calendar month. 
-            Once executed, these numbers become <strong>immutable</strong>. Any subsequent returns for invoices billed in a closed month will be diverted via the Transaction Ledger to debit the current active month instead.
+          <p className="text-sm leading-relaxed mb-6 text-slate-400 max-w-2xl font-medium">
+            Cette routine opérationnelle capture un instantané permanent et en lecture seule de l'état financier pour un mois donné. 
+            Une fois exécutés, ces chiffres deviennent <strong>immuables</strong>. Tout retour ultérieur concernant des factures d'un mois clôturé sera redirigé via le journal des transactions pour débiter le mois actif en cours.
           </p>
 
           <form onSubmit={handleCloseMonth} className="flex flex-col sm:flex-row gap-4 items-end max-w-lg relative z-10">
             <div className="w-full">
-              <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wide">Closing Target (YYYY-MM)</label>
+              <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wide">Mois Cible (AAAA-MM)</label>
               <input
                 type="text"
                 placeholder="2026-06"
@@ -248,7 +248,7 @@ export default function FinancialsClient({ archives }) {
               className="w-full sm:w-auto px-6 py-2.5 bg-rose-600 text-white rounded-lg hover:bg-rose-700 font-bold disabled:opacity-50 transition-colors flex items-center justify-center gap-2 shrink-0 shadow-lg shadow-rose-900/50"
             >
               {isPending && <RefreshCcw className="w-4 h-4 animate-spin" />}
-              Freeze & Archive
+              Figer &amp; Archiver
             </button>
           </form>
         </div>
@@ -259,15 +259,15 @@ export default function FinancialsClient({ archives }) {
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 h-full min-h-[600px]">
           <div className="flex items-center gap-2 mb-6 pb-4 border-b border-gray-100">
             <Calendar className="w-5 h-5 text-gray-700" />
-            <h2 className="font-bold text-gray-900">Immutable Archives</h2>
+            <h2 className="font-bold text-gray-900">Archives Immuables</h2>
           </div>
 
           {archives.length === 0 ? (
-            <div className="flex flex-col items-center justify-center text-gray-400 py-16">
+            <div className="flex flex-col items-center justify-center text-gray-500 py-16">
               <FileLock2 className="w-10 h-10 mb-3 opacity-30 text-gray-400" />
-              <p className="text-sm font-medium text-gray-500">No closed months yet.</p>
-              <p className="text-xs text-center mt-2 max-w-[200px] leading-relaxed">
-                Run the Month-End Close routine to permanently lock a period.
+              <p className="text-sm font-semibold text-gray-600">Aucun mois clôturé.</p>
+              <p className="text-xs text-center font-medium mt-2 max-w-[200px] leading-relaxed">
+                Exécutez la clôture mensuelle pour verrouiller définitivement une période.
               </p>
             </div>
           ) : (
@@ -277,35 +277,35 @@ export default function FinancialsClient({ archives }) {
                   <div className="flex justify-between items-center mb-3">
                     <div className="font-bold text-gray-900 text-lg">{report.closingMonthId}</div>
                     <div className="text-[10px] uppercase font-bold tracking-wider px-2 py-1 bg-emerald-100 text-emerald-800 rounded">
-                      Locked
+                      Verrouillé
                     </div>
                   </div>
                   
                   <div className="space-y-1.5 text-xs">
-                    <div className="flex justify-between text-gray-600">
-                      <span>Gross Revenue</span>
-                      <span className="font-semibold text-gray-900">${parseFloat(report.totalRevenue).toLocaleString()}</span>
+                    <div className="flex justify-between text-gray-600 font-medium">
+                      <span>CA Brut</span>
+                      <span className="font-semibold text-gray-900">{parseFloat(report.totalRevenue).toLocaleString("fr-DZ")} DZD</span>
                     </div>
-                    <div className="flex justify-between text-gray-600">
-                      <span>COGS</span>
-                      <span className="font-semibold text-gray-900">-${parseFloat(report.totalCOGS).toLocaleString()}</span>
+                    <div className="flex justify-between text-gray-600 font-medium">
+                      <span>CMV</span>
+                      <span className="font-semibold text-gray-900">-{parseFloat(report.totalCOGS).toLocaleString("fr-DZ")} DZD</span>
                     </div>
-                    <div className="flex justify-between text-gray-600 border-t border-gray-200 pt-1.5 mt-1.5">
-                      <span>OPEX Total</span>
+                    <div className="flex justify-between text-gray-600 font-medium border-t border-gray-200 pt-1.5 mt-1.5">
+                      <span>Total OPEX</span>
                       <span className="font-semibold text-red-600">
-                        -${(parseFloat(report.totalLogisticsExpenses) + parseFloat(report.totalAdjustmentLosses)).toLocaleString()}
+                        -{(parseFloat(report.totalLogisticsExpenses) + parseFloat(report.totalAdjustmentLosses)).toLocaleString("fr-DZ")} DZD
                       </span>
                     </div>
                   </div>
                   
                   <div className="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center">
-                    <span className="text-xs font-bold text-gray-500 uppercase">Net Profit</span>
+                    <span className="text-xs font-bold text-gray-600 uppercase">Bénéfice Net</span>
                     <span className="text-sm font-extrabold text-emerald-700">
-                      ${parseFloat(report.finalNetProfit).toLocaleString("en-US", {minimumFractionDigits: 2})}
+                      {parseFloat(report.finalNetProfit).toLocaleString("fr-DZ", {minimumFractionDigits: 2})} DZD
                     </span>
                   </div>
                   <div className="mt-3 text-[9px] text-gray-400 font-mono text-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    Archived: {new Date(report.closedAt).toLocaleString()}
+                    Archivé : {new Date(report.closedAt).toLocaleString()}
                   </div>
                 </div>
               ))}

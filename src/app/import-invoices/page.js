@@ -4,8 +4,8 @@ import InvoicesListClient from "./InvoicesListClient";
 import { FileText, Plus, ArrowLeft } from "lucide-react";
 
 export const metadata = {
-  title: "Import Invoices | ERP System",
-  description: "Manage supplier import invoices and procurement records.",
+  title: "Factures d'Importation | ERP TechnoLink",
+  description: "Gérer les factures fournisseurs et les enregistrements d'achats.",
 };
 
 export default async function ImportInvoicesPage() {
@@ -26,9 +26,9 @@ export default async function ImportInvoicesPage() {
               <FileText className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Import Invoices</h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Procurement records, batch inventory, and supplier debt management
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Factures d'Importation</h1>
+              <p className="text-sm text-gray-700 font-medium mt-1">
+                Achats fournisseurs, gestion des lots et des dettes
               </p>
             </div>
           </div>
@@ -37,7 +37,7 @@ export default async function ImportInvoicesPage() {
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-md hover:bg-emerald-700 transition-colors shrink-0"
           >
             <Plus className="w-5 h-5" />
-            New Invoice
+            Nouvelle Facture
           </Link>
         </div>
 

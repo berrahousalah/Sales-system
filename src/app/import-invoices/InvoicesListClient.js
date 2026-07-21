@@ -70,8 +70,8 @@ export default function InvoicesListClient({ invoices: initialInvoices }) {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search by serial number, invoice number, or supplier name..."
-            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-sm"
+            placeholder="Rechercher par N/S, N° facture ou fournisseur..."
+            className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-sm text-gray-900"
           />
         </div>
         <button
@@ -80,7 +80,7 @@ export default function InvoicesListClient({ invoices: initialInvoices }) {
           className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors text-sm"
         >
           {isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
-          Search
+          Rechercher
         </button>
         {searchQuery && (
           <button
@@ -88,7 +88,7 @@ export default function InvoicesListClient({ invoices: initialInvoices }) {
             onClick={clearSearch}
             className="px-4 py-2 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition-colors text-sm"
           >
-            Clear
+            Effacer
           </button>
         )}
       </form>
@@ -97,21 +97,21 @@ export default function InvoicesListClient({ invoices: initialInvoices }) {
       {serialResult && (
         <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
           <h3 className="text-sm font-semibold text-emerald-800 mb-3">
-            Serial Number Found: <span className="font-mono">{serialResult.serial}</span>
+            N/S Trouvé : <span className="font-mono">{serialResult.serial}</span>
           </h3>
           <div className="grid grid-cols-2 gap-3 text-sm">
             <div>
-              <span className="text-gray-500">Product:</span>{" "}
-              <span className="font-medium">{serialResult.importInvoiceLine.product.name}</span>
+              <span className="text-gray-700 font-medium">Produit :</span>{" "}
+              <span className="font-semibold">{serialResult.importInvoiceLine.product.name}</span>
             </div>
             <div>
-              <span className="text-gray-500">Supplier:</span>{" "}
-              <span className="font-medium">
+              <span className="text-gray-700 font-medium">Fournisseur :</span>{" "}
+              <span className="font-semibold">
                 {serialResult.importInvoiceLine.importInvoice.supplier.name}
               </span>
             </div>
             <div>
-              <span className="text-gray-500">Invoice:</span>{" "}
+              <span className="text-gray-700 font-medium">Facture :</span>{" "}
               <Link
                 href={`/import-invoices/${serialResult.importInvoiceLine.importInvoice.id}`}
                 className="text-emerald-600 hover:underline font-mono font-medium"
@@ -120,7 +120,7 @@ export default function InvoicesListClient({ invoices: initialInvoices }) {
               </Link>
             </div>
             <div>
-              <span className="text-gray-500">Status:</span>{" "}
+              <span className="text-gray-700 font-medium">Statut :</span>{" "}
               <span
                 className={`px-2 py-0.5 rounded text-xs font-medium ${
                   serialResult.isSold
@@ -130,7 +130,7 @@ export default function InvoicesListClient({ invoices: initialInvoices }) {
                     : "bg-green-100 text-green-700"
                 }`}
               >
-                {serialResult.isSold ? "Sold" : serialResult.isReturned ? "Returned" : "In Stock"}
+                {serialResult.isSold ? "Vendu" : serialResult.isReturned ? "Retourné" : "En stock"}
               </span>
             </div>
           </div>
@@ -148,8 +148,8 @@ export default function InvoicesListClient({ invoices: initialInvoices }) {
       {invoices.length === 0 && !serialResult && !searchError ? (
         <div className="flex flex-col items-center justify-center p-12 bg-white rounded-xl border border-gray-100">
           <FileText className="w-12 h-12 text-gray-300 mb-3" />
-          <p className="font-medium text-gray-700">No import invoices yet</p>
-          <p className="text-sm text-gray-400 mt-1">Create your first invoice to start procuring inventory.</p>
+          <p className="font-medium text-gray-700">Aucune facture d'importation</p>
+          <p className="text-sm text-gray-500 mt-1">Créez votre première facture pour commencer les achats.</p>
         </div>
       ) : (
         invoices.length > 0 && (
@@ -158,13 +158,13 @@ export default function InvoicesListClient({ invoices: initialInvoices }) {
               <table className="w-full text-left text-sm whitespace-nowrap">
                 <thead className="bg-gray-50 text-gray-700 border-b border-gray-200">
                   <tr>
-                    <th className="px-6 py-4 font-semibold">Invoice #</th>
-                    <th className="px-6 py-4 font-semibold">Supplier</th>
+                    <th className="px-6 py-4 font-semibold">Facture N°</th>
+                    <th className="px-6 py-4 font-semibold">Fournisseur</th>
                     <th className="px-6 py-4 font-semibold">Date</th>
                     <th className="px-6 py-4 font-semibold text-right">Total</th>
-                    <th className="px-6 py-4 font-semibold text-right">Paid</th>
-                    <th className="px-6 py-4 font-semibold text-right">Debt</th>
-                    <th className="px-6 py-4 font-semibold text-center">Status</th>
+                    <th className="px-6 py-4 font-semibold text-right">Payé</th>
+                    <th className="px-6 py-4 font-semibold text-right">Dette</th>
+                    <th className="px-6 py-4 font-semibold text-center">Statut</th>
                     <th className="px-6 py-4 font-semibold text-right">Action</th>
                   </tr>
                 </thead>
@@ -174,18 +174,18 @@ export default function InvoicesListClient({ invoices: initialInvoices }) {
                       <td className="px-6 py-4 font-mono font-medium text-emerald-700">
                         {inv.invoiceNumber}
                       </td>
-                      <td className="px-6 py-4 text-gray-700">{inv.supplier.name}</td>
-                      <td className="px-6 py-4 text-gray-500">
+                      <td className="px-6 py-4 text-gray-700 font-medium">{inv.supplier.name}</td>
+                      <td className="px-6 py-4 text-gray-700 font-medium">
                         {new Date(inv.invoiceDate).toLocaleDateString()}
                       </td>
-                      <td className="px-6 py-4 text-right font-medium">
-                        ${parseFloat(inv.totalAmount).toFixed(2)}
+                      <td className="px-6 py-4 text-right font-semibold text-gray-900">
+                        {parseFloat(inv.totalAmount).toFixed(2)} DZD
                       </td>
-                      <td className="px-6 py-4 text-right text-gray-600">
-                        ${parseFloat(inv.amountPaid).toFixed(2)}
+                      <td className="px-6 py-4 text-right text-gray-700 font-medium">
+                        {parseFloat(inv.amountPaid).toFixed(2)} DZD
                       </td>
-                      <td className="px-6 py-4 text-right text-red-600 font-medium">
-                        ${parseFloat(inv.debtBalance).toFixed(2)}
+                      <td className="px-6 py-4 text-right text-red-600 font-semibold">
+                        {parseFloat(inv.debtBalance).toFixed(2)} DZD
                       </td>
                       <td className="px-6 py-4 text-center">
                         <span
@@ -201,7 +201,7 @@ export default function InvoicesListClient({ invoices: initialInvoices }) {
                           href={`/import-invoices/${inv.id}`}
                           className="inline-flex items-center gap-1 text-emerald-600 hover:text-emerald-800 text-xs font-medium"
                         >
-                          Open <ChevronRight className="w-3.5 h-3.5" />
+                          Ouvrir <ChevronRight className="w-3.5 h-3.5" />
                         </Link>
                       </td>
                     </tr>

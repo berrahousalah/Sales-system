@@ -6,8 +6,8 @@ import CsvImportModal from "./components/CsvImportModal";
 import { Package, ArrowLeft } from "lucide-react";
 
 export const metadata = {
-  title: "Products Management | ERP System",
-  description: "Manage product definitions and inventory base constraints.",
+  title: "Gestion des Produits | ERP TechnoLink",
+  description: "Gérer les définitions des produits et le stock.",
 };
 
 export default async function ProductsPage() {
@@ -30,8 +30,8 @@ export default async function ProductsPage() {
               <Package className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Products Management</h1>
-              <p className="text-sm text-gray-500 mt-1">Single Source of Truth for all inventory definitions</p>
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Gestion des Produits</h1>
+              <p className="text-sm text-gray-700 font-medium mt-1">Source unique de vérité pour tout le stock</p>
             </div>
           </div>
           
@@ -44,8 +44,8 @@ export default async function ProductsPage() {
         {/* Global Error Banner if DB fetch failed */}
         {!result.success && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
-            <span className="font-semibold text-sm">Failed to load products:</span> 
-            <span className="text-sm">{result.message}</span>
+            <span className="font-semibold text-sm">Erreur lors du chargement des produits :</span> 
+            <span className="text-sm font-medium">{result.message}</span>
           </div>
         )}
 

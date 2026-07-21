@@ -10,60 +10,60 @@ export const metadata = {
 
 const MODULES = [
   {
-    title: "Products",
-    description: "Manage the core catalog, pricing, and stock balances.",
+    title: "Produits",
+    description: "Gérer le catalogue principal, les prix et les stocks.",
     href: "/products",
     icon: <Package className="w-8 h-8 text-blue-600" />,
-    bg: "bg-blue-50 border-blue-100",
+    bg: "bg-blue-50 border-blue-200",
   },
   {
-    title: "Suppliers",
-    description: "Track supplier profiles and outstanding debts.",
+    title: "Fournisseurs",
+    description: "Suivre les profils des fournisseurs et les dettes.",
     href: "/suppliers",
     icon: <Building2 className="w-8 h-8 text-indigo-600" />,
-    bg: "bg-indigo-50 border-indigo-100",
+    bg: "bg-indigo-50 border-indigo-200",
   },
   {
-    title: "Customers",
-    description: "Manage CRM profiles and customer receivables.",
+    title: "Clients",
+    description: "Gérer les profils clients et les créances.",
     href: "/customers",
     icon: <Users className="w-8 h-8 text-cyan-600" />,
-    bg: "bg-cyan-50 border-cyan-100",
+    bg: "bg-cyan-50 border-cyan-200",
   },
   {
-    title: "Procurement",
-    description: "Import invoices, batching, and serial logging.",
+    title: "Factures d'Importation",
+    description: "Factures d'achat, lots et gestion des numéros de série.",
     href: "/import-invoices",
     icon: <Truck className="w-8 h-8 text-amber-600" />,
-    bg: "bg-amber-50 border-amber-100",
+    bg: "bg-amber-50 border-amber-200",
   },
   {
-    title: "Sales Invoices",
-    description: "Formal sales, COD workflows, and debt sync.",
+    title: "Factures de Vente",
+    description: "Ventes formelles, paiements à la livraison et suivi des dettes.",
     href: "/sales-invoices",
     icon: <FileText className="w-8 h-8 text-violet-600" />,
-    bg: "bg-violet-50 border-violet-100",
+    bg: "bg-violet-50 border-violet-200",
   },
   {
-    title: "Quick Sales POS",
-    description: "High-speed cash checkout and scanning.",
+    title: "Caisse (Vente Rapide)",
+    description: "Point de vente rapide et scan de codes-barres.",
     href: "/quick-sales",
     icon: <Zap className="w-8 h-8 text-pink-600" />,
-    bg: "bg-pink-50 border-pink-100",
+    bg: "bg-pink-50 border-pink-200",
   },
   {
-    title: "Inventory Adjustments",
-    description: "Write-off discrepancies and burn serials.",
+    title: "Ajustements de Stock",
+    description: "Corriger les écarts et gérer les pertes.",
     href: "/inventory-adjustments",
     icon: <SlidersHorizontal className="w-8 h-8 text-rose-600" />,
-    bg: "bg-rose-50 border-rose-100",
+    bg: "bg-rose-50 border-rose-200",
   },
   {
-    title: "Financials & Reports",
-    description: "Immutable month-end closes & real-time metrics.",
+    title: "Finances & Rapports",
+    description: "Clôtures mensuelles et indicateurs de performance.",
     href: "/financials",
     icon: <Landmark className="w-8 h-8 text-emerald-600" />,
-    bg: "bg-emerald-50 border-emerald-100",
+    bg: "bg-emerald-50 border-emerald-200",
   },
 ];
 
@@ -77,13 +77,13 @@ export default function Home() {
           
           <div className="relative z-10 space-y-4">
             <div className="inline-block px-3 py-1 mb-2 border border-blue-500/30 bg-blue-500/10 rounded-full text-blue-300 text-sm font-semibold tracking-widest uppercase">
-              Powered by TechnoLink
+              Propulsé par TechnoLink
             </div>
             <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight">
-              TechnoLink <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">ERP System</span>
+              Système ERP <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400">TechnoLink</span>
             </h1>
-            <p className="text-lg text-slate-400 max-w-2xl mx-auto leading-relaxed">
-              Fully integrated suite managing procurement, serialized stock, point-of-sale, customer debts, and immutable financial reports.
+            <p className="text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed font-medium">
+              Suite intégrée gérant les achats, le stock sérialisé, la caisse, les dettes et les rapports financiers.
             </p>
           </div>
         </div>
@@ -100,13 +100,13 @@ export default function Home() {
                   {mod.icon}
                 </div>
                 <h2 className="text-xl font-bold text-gray-900 mb-2">{mod.title}</h2>
-                <p className="text-sm text-gray-600 leading-relaxed mb-6">
+                <p className="text-sm text-gray-700 font-medium leading-relaxed mb-6">
                   {mod.description}
                 </p>
               </div>
               
               <div className="flex items-center text-sm font-bold text-gray-900 gap-2 group-hover:gap-3 transition-all">
-                Launch Module <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-gray-900 transition-colors" />
+                Ouvrir le module <ArrowRight className="w-4 h-4 text-gray-600 group-hover:text-gray-900 transition-colors" />
               </div>
             </Link>
           ))}

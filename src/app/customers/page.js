@@ -5,8 +5,8 @@ import CustomerForm from "./components/CustomerForm";
 import { Users, ArrowLeft } from "lucide-react";
 
 export const metadata = {
-  title: "Customers Management | ERP System",
-  description: "Manage customer profiles and track accounts receivable.",
+  title: "Gestion des Clients | ERP TechnoLink",
+  description: "Gérer les profils clients et suivre les créances.",
 };
 
 export default async function CustomersPage() {
@@ -29,10 +29,10 @@ export default async function CustomersPage() {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
-                Customers Management
+                Gestion des Clients
               </h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Manage customer profiles and track accounts receivable
+              <p className="text-sm text-gray-700 font-medium mt-1">
+                Gérer les profils clients et suivre les créances
               </p>
             </div>
           </div>
@@ -44,8 +44,8 @@ export default async function CustomersPage() {
         {/* Error banner */}
         {!result.success && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
-            <span className="font-semibold text-sm">Failed to load customers:</span>
-            <span className="text-sm">{result.message}</span>
+            <span className="font-semibold text-sm">Erreur lors du chargement des clients :</span>
+            <span className="text-sm font-medium">{result.message}</span>
           </div>
         )}
 

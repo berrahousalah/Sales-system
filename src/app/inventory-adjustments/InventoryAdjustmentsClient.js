@@ -109,18 +109,18 @@ export default function InventoryAdjustmentsClient({ history: initialHistory, pr
 
   const handleExecuteAdjustment = async (e) => {
     e.preventDefault();
-    if (!batchId) return showMsg("Please select a batch.", true);
-    if (!reason) return showMsg("Please select a reason for this adjustment.", true);
-    if (quantity > maxQty) return showMsg(`Quantity exceeds stock (Max: ${maxQty}).`, true);
+    if (!batchId) return showMsg("Veuillez sélectionner un lot.", true);
+    if (!reason) return showMsg("Veuillez sélectionner un motif d'ajustement.", true);
+    if (quantity > maxQty) return showMsg(`La quantité dépasse le stock (Max: ${maxQty}).`, true);
     
     if (isSerialised) {
       const trimmed = serials.map((s) => s.trim());
-      if (trimmed.some((s) => !s)) return showMsg("All serial fields must be filled to burn them.", true);
+      if (trimmed.some((s) => !s)) return showMsg("Tous les champs de N/S doivent être remplis.", true);
       for (const sn of trimmed) {
-        if (!availableSerials.includes(sn)) return showMsg(`Serial "${sn}" is unavailable in this batch.`, true);
+        if (!availableSerials.includes(sn)) return showMsg(`Le N/S "${sn}" n'est pas disponible dans ce lot.`, true);
       }
       const unique = new Set(trimmed);
-      if (unique.size !== trimmed.length) return showMsg("Duplicate serial numbers detected.", true);
+      if (unique.size !== trimmed.length) return showMsg("Numéros de série en double détectés.", true);
     }
 
     startTransition(async () => {
@@ -133,7 +133,7 @@ export default function InventoryAdjustmentsClient({ history: initialHistory, pr
       
       const result = await executeInventoryAdjustment(payload);
       if (result.success) {
-        showMsg("Adjustment executed successfully. Financial loss tracked.");
+        showMsg("Ajustement enregistré avec succès. Perte financière imputée.");
         setProductId("");
         setBatchId("");
         setQuantity(1);
@@ -166,7 +166,7 @@ export default function InventoryAdjustmentsClient({ history: initialHistory, pr
         <div className="bg-white rounded-2xl shadow-sm border border-rose-100 p-5">
           <div className="flex items-center gap-2 mb-5 pb-3 border-b border-rose-50">
             <FileWarning className="w-5 h-5 text-rose-500" />
-            <h2 className="font-bold text-gray-900">Record New Adjustment</h2>
+            <h2 className="font-bold text-gray-900">Nouvel Ajustement de Stock</h2>
           </div>
 
           <form onSubmit={handleExecuteAdjustment} className="space-y-4">
@@ -218,7 +218,7 @@ export default function InventoryAdjustmentsClient({ history: initialHistory, pr
                 <div className="grid grid-cols-2 gap-4">
                   {/* Quantity */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Qty (Max: {maxQty})</label>
+                    <label className="block text-sm font-medium text-gray-800 mb-1">Qté (Max: {maxQty})</label>
                     <input
                       type="number"
                       min={1}
@@ -226,20 +226,20 @@ export default function InventoryAdjustmentsClient({ history: initialHistory, pr
                       value={quantity}
                       onChange={(e) => setQuantity(Math.min(maxQty, Math.max(1, parseInt(e.target.value)||1)))}
                       required
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 outline-none"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 font-medium focus:ring-2 focus:ring-rose-500 outline-none"
                     />
                   </div>
 
                   {/* Reason Code */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Reason Code <span className="text-red-500">*</span></label>
+                    <label className="block text-sm font-medium text-gray-800 mb-1">Motif <span className="text-red-500">*</span></label>
                     <select
                       value={reason}
                       onChange={(e) => setReason(e.target.value)}
                       required
                       className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 outline-none bg-white"
                     >
-                      <option value="">— Select —</option>
+                      <option value="">— Sélectionner —</option>
                       {REASONS.map((r) => <option key={r.value} value={r.value}>{r.label}</option>)}
                     </select>
                   </div>
@@ -249,10 +249,10 @@ export default function InventoryAdjustmentsClient({ history: initialHistory, pr
                 {isSerialised && (
                   <div className="space-y-2 mt-2 p-3 bg-rose-50 rounded-lg border border-rose-100">
                     <div className="flex items-center text-sm font-medium text-rose-800 gap-1.5 mb-2">
-                      <ScanLine className="w-4 h-4" /> Scan Serials to Burn
+                      <ScanLine className="w-4 h-4" /> Scanner les N/S à Invalider
                     </div>
-                    <p className="text-xs text-rose-600 mb-2 leading-snug">
-                      These serial numbers will be permanently invalidated and marked as {reason || "adjusted"}.
+                    <p className="text-xs text-rose-700 font-medium mb-2 leading-snug">
+                      Ces N/S seront définitivement invalidés et marqués comme {reason || "ajustés"}.
                     </p>
                     <div className="max-h-40 overflow-y-auto space-y-1.5">
                       {serials.map((serial, index) => (
@@ -267,8 +267,8 @@ export default function InventoryAdjustmentsClient({ history: initialHistory, pr
                             setSerials(next);
                           }}
                           onKeyDown={(e) => handleSerialKeyDown(e, index)}
-                          placeholder={`Serial #${index + 1}`}
-                          className={`w-full px-3 py-1.5 border rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-rose-500 ${
+                          placeholder={`N/S #${index + 1}`}
+                          className={`w-full px-3 py-1.5 border rounded-md text-sm font-mono font-medium focus:outline-none focus:ring-2 focus:ring-rose-500 ${
                             serial.trim()
                               ? availableSerials.includes(serial.trim())
                                 ? "border-green-300 bg-green-50 text-green-800"
@@ -289,7 +289,7 @@ export default function InventoryAdjustmentsClient({ history: initialHistory, pr
               className="w-full py-2.5 mt-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 font-medium disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
             >
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              Execute Adjustment & Write-off
+              Exécuter l'Ajustement & Comptabiliser la Perte
             </button>
           </form>
         </div>
@@ -300,8 +300,8 @@ export default function InventoryAdjustmentsClient({ history: initialHistory, pr
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 h-full min-h-[500px]">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5 border-b border-gray-100 pb-4">
             <div>
-              <h2 className="font-bold text-gray-900">Adjustment Audit Ledger</h2>
-              <p className="text-xs text-gray-500 mt-0.5">Permanent immutable record of all inventory write-offs.</p>
+              <h2 className="font-bold text-gray-900">Journal des Ajustements</h2>
+              <p className="text-xs text-gray-600 font-medium mt-0.5">Registre immuable de tous les ajustements de stock.</p>
             </div>
             <div className="relative w-full sm:w-64">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -309,27 +309,27 @@ export default function InventoryAdjustmentsClient({ history: initialHistory, pr
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Filter products, reasons..."
-                className="w-full pl-9 pr-3 py-1.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-rose-500 outline-none"
+                placeholder="Filtrer produits, motifs..."
+                className="w-full pl-9 pr-3 py-1.5 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-rose-500 outline-none"
               />
             </div>
           </div>
 
           {filteredHistory.length === 0 ? (
-            <div className="flex flex-col items-center justify-center text-gray-400 py-20">
-              <SlidersHorizontal className="w-10 h-10 mb-2 opacity-50" />
-              <p className="text-sm">No adjustments found.</p>
+            <div className="flex flex-col items-center justify-center text-gray-500 py-20">
+              <SlidersHorizontal className="w-10 h-10 mb-2 text-gray-300" />
+              <p className="text-sm font-medium">Aucun ajustement trouvé.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left whitespace-nowrap">
-                <thead className="bg-gray-50 text-gray-600 border-b border-gray-200">
+                <thead className="bg-gray-50 text-gray-700 border-b border-gray-200">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Date</th>
-                    <th className="px-4 py-3 font-semibold">Product</th>
-                    <th className="px-4 py-3 font-semibold">Reason</th>
-                    <th className="px-4 py-3 font-semibold text-right">Qty</th>
-                    <th className="px-4 py-3 font-semibold text-right">Loss (Cost Basis)</th>
+                    <th className="px-4 py-3 font-semibold">Produit</th>
+                    <th className="px-4 py-3 font-semibold">Motif</th>
+                    <th className="px-4 py-3 font-semibold text-right">Qté</th>
+                    <th className="px-4 py-3 font-semibold text-right">Perte Financière</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
@@ -338,14 +338,14 @@ export default function InventoryAdjustmentsClient({ history: initialHistory, pr
                     
                     return (
                       <tr key={adj.id} className="hover:bg-gray-50/50">
-                        <td className="px-4 py-4 text-gray-500 text-xs">
+                        <td className="px-4 py-4 text-gray-700 text-xs font-medium">
                           {new Date(adj.createdAt).toLocaleString()}
                         </td>
                         <td className="px-4 py-4">
                           <div className="font-medium text-gray-900">{adj.batch.product.name}</div>
                           {adj.adjustedSerials.length > 0 && (
-                            <div className="text-[10px] text-rose-500 font-mono mt-1 font-medium bg-rose-50 inline-block px-1.5 py-0.5 rounded">
-                              Burned: {adj.adjustedSerials.join(", ")}
+                            <div className="text-[10px] text-rose-600 font-mono mt-1 font-semibold bg-rose-50 inline-block px-1.5 py-0.5 rounded">
+                              Invalidés: {adj.adjustedSerials.join(", ")}
                             </div>
                           )}
                         </td>
@@ -356,7 +356,7 @@ export default function InventoryAdjustmentsClient({ history: initialHistory, pr
                         </td>
                         <td className="px-4 py-4 text-right font-medium">{adj.quantity}</td>
                         <td className="px-4 py-4 text-right font-bold text-rose-600">
-                          ${parseFloat(adj.financialLoss).toFixed(2)}
+                          {parseFloat(adj.financialLoss).toFixed(2)} DZD
                         </td>
                       </tr>
                     );

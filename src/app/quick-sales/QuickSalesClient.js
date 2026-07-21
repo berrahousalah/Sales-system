@@ -107,14 +107,14 @@ export default function QuickSalesClient({ history: initialHistory, products }) 
   // ── Execute Sale ────────────────────────────────────────────────────────
   const handleExecuteSale = async (e) => {
     e.preventDefault();
-    if (!batchId) return showMsg("Please select a batch.", true);
-    if (quantity > maxQty) return showMsg("Quantity exceeds stock.", true);
+    if (!batchId) return showMsg("Veuillez sélectionner un lot.", true);
+    if (quantity > maxQty) return showMsg("La quantité dépasse le stock disponible.", true);
     
     if (isSerialised) {
       const trimmed = serials.map((s) => s.trim());
-      if (trimmed.some((s) => !s)) return showMsg("All serial fields must be filled.", true);
+      if (trimmed.some((s) => !s)) return showMsg("Tous les champs de N/S doivent être remplis.", true);
       for (const sn of trimmed) {
-        if (!availableSerials.includes(sn)) return showMsg(`Serial "${sn}" is unavailable.`, true);
+        if (!availableSerials.includes(sn)) return showMsg(`Le N/S "${sn}" n'est pas disponible.`, true);
       }
     }
 
@@ -128,7 +128,7 @@ export default function QuickSalesClient({ history: initialHistory, products }) 
       
       const result = await executeQuickSale(payload);
       if (result.success) {
-        showMsg("Sale executed successfully!");
+        showMsg("Vente enregistrée avec succès !");
         setProductId("");
         setBatchId("");
         setQuantity(1);
@@ -143,11 +143,11 @@ export default function QuickSalesClient({ history: initialHistory, products }) 
 
   // ── Return Sale ────────────────────────────────────────────────────────
   const handleReturn = async (saleId) => {
-    if (!confirm("Return this item? It will be removed from history and stock restored instantly.")) return;
+    if (!confirm("Retourner cet article ? Le stock sera immédiatement restauré.")) return;
     setReturningId(saleId);
     const result = await returnQuickSale(saleId);
     if (result.success) {
-      showMsg("Return processed successfully.");
+      showMsg("Retour traité avec succès.");
       setHistory(h => h.filter(s => s.id !== saleId));
       router.refresh();
       // If we are currently selecting the returned product's batch, reload batches
@@ -174,25 +174,25 @@ export default function QuickSalesClient({ history: initialHistory, products }) 
       
       {/* ── LEFT: NEW SALE POS ── */}
       <div className="lg:col-span-5 space-y-4">
-        <div className="bg-white rounded-2xl shadow-sm border border-pink-100 p-5">
-          <div className="flex items-center gap-2 mb-5 pb-3 border-b border-pink-50">
+        <div className="bg-white rounded-2xl shadow-sm border border-pink-200 p-5">
+          <div className="flex items-center gap-2 mb-5 pb-3 border-b border-pink-100">
             <Zap className="w-5 h-5 text-pink-500" />
-            <h2 className="font-bold text-gray-900">New Direct Sale</h2>
+            <h2 className="font-bold text-gray-900">Nouvelle Vente Directe</h2>
           </div>
 
           <form onSubmit={handleExecuteSale} className="space-y-4">
-            {error && <div className="p-3 bg-red-50 text-red-600 rounded-lg text-sm">{error}</div>}
-            {success && <div className="p-3 bg-green-50 text-green-700 rounded-lg text-sm">{success}</div>}
+            {error && <div className="p-3 bg-red-50 text-red-700 rounded-lg text-sm font-medium">{error}</div>}
+            {success && <div className="p-3 bg-green-50 text-green-700 rounded-lg text-sm font-medium">{success}</div>}
 
             {/* Product */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Product</label>
+              <label className="block text-sm font-medium text-gray-800 mb-1">Produit</label>
               <Combobox
                 options={products.map((p) => ({ value: p.id, label: p.name }))}
                 value={productId}
                 onChange={setProductId}
-                placeholder="— Select Product —"
-                searchPlaceholder="Search products..."
+                placeholder="— Sélectionner un produit —"
+                searchPlaceholder="Rechercher un produit..."
                 className="w-full"
               />
             </div>
@@ -200,21 +200,21 @@ export default function QuickSalesClient({ history: initialHistory, products }) 
             {/* Batch (No purchase price) */}
             {productId && (
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Batch</label>
+                <label className="block text-sm font-medium text-gray-800 mb-1">Lot</label>
                 <Combobox
                   options={availableBatches.map((b) => ({
                     value: b.id,
-                    label: `Rem: ${b.quantityRemaining} | Ret: $${parseFloat(b.retailPrice).toFixed(2)} (${b.supplier.name})`
+                    label: `Reste: ${b.quantityRemaining} | Prix: ${parseFloat(b.retailPrice).toFixed(2)} DZD (${b.supplier.name})`
                   }))}
                   value={batchId}
                   onChange={setBatchId}
-                  placeholder={loadingBatches ? "Loading..." : "— Select Available Batch —"}
-                  searchPlaceholder="Search batches..."
+                  placeholder={loadingBatches ? "Chargement..." : "— Sélectionner un lot —"}
+                  searchPlaceholder="Rechercher un lot..."
                   disabled={loadingBatches || availableBatches.length === 0}
                   className="w-full"
                 />
                 {availableBatches.length === 0 && !loadingBatches && (
-                  <p className="mt-1 text-xs text-amber-600">No stock available for this product.</p>
+                  <p className="mt-1 text-xs text-amber-700 font-medium">Aucun stock disponible pour ce produit.</p>
                 )}
               </div>
             )}
@@ -223,7 +223,7 @@ export default function QuickSalesClient({ history: initialHistory, products }) 
             {batchId && (
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Qty (Max: {maxQty})</label>
+                  <label className="block text-sm font-medium text-gray-800 mb-1">Qté (Max: {maxQty})</label>
                   <input
                     type="number"
                     min={1}
@@ -231,23 +231,20 @@ export default function QuickSalesClient({ history: initialHistory, products }) 
                     value={quantity}
                     onChange={(e) => setQuantity(Math.min(maxQty, Math.max(1, parseInt(e.target.value)||1)))}
                     required
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-pink-500 outline-none"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 font-medium focus:ring-2 focus:ring-pink-500 outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Selling Price</label>
-                  <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0.01"
-                      value={sellingPrice}
-                      onChange={(e) => setSellingPrice(e.target.value)}
-                      required
-                      className="w-full pl-8 pr-3 py-2 border border-gray-300 rounded-lg text-sm font-medium focus:ring-2 focus:ring-pink-500 outline-none"
-                    />
-                  </div>
+                  <label className="block text-sm font-medium text-gray-800 mb-1">Prix de Vente (DZD)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={sellingPrice}
+                    onChange={(e) => setSellingPrice(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 font-medium focus:ring-2 focus:ring-pink-500 outline-none"
+                  />
                 </div>
               </div>
             )}
@@ -255,8 +252,8 @@ export default function QuickSalesClient({ history: initialHistory, products }) 
             {/* Serials */}
             {batchId && isSerialised && (
               <div className="space-y-2 mt-2 p-3 bg-gray-50 rounded-lg border border-gray-200">
-                <div className="flex items-center text-sm font-medium text-gray-700 gap-1.5 mb-2">
-                  <ScanLine className="w-4 h-4 text-pink-500" /> Scan Serials
+                <div className="flex items-center text-sm font-medium text-gray-800 gap-1.5 mb-2">
+                  <ScanLine className="w-4 h-4 text-pink-500" /> Scanner les N/S
                 </div>
                 <div className="max-h-40 overflow-y-auto space-y-1.5">
                   {serials.map((serial, index) => (
@@ -271,13 +268,13 @@ export default function QuickSalesClient({ history: initialHistory, products }) 
                         setSerials(next);
                       }}
                       onKeyDown={(e) => handleSerialKeyDown(e, index)}
-                      placeholder={`Serial #${index + 1}`}
-                      className={`w-full px-3 py-1.5 border rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-pink-500 ${
+                      placeholder={`N/S #${index + 1}`}
+                      className={`w-full px-3 py-1.5 border rounded-md text-sm font-mono font-medium focus:outline-none focus:ring-2 focus:ring-pink-500 ${
                         serial.trim()
                           ? availableSerials.includes(serial.trim())
                             ? "border-green-300 bg-green-50 text-green-800"
                             : "border-red-300 bg-red-50 text-red-800"
-                          : "border-gray-300 bg-white"
+                          : "border-gray-300 bg-white text-gray-900"
                       }`}
                     />
                   ))}
@@ -288,9 +285,9 @@ export default function QuickSalesClient({ history: initialHistory, products }) 
             {/* Total Math */}
             {batchId && (
               <div className="p-3 bg-pink-50 text-pink-900 rounded-lg text-sm font-medium flex justify-between items-center">
-                <span>Total Cash Due:</span>
+                <span>Total à encaisser:</span>
                 <span className="text-lg font-bold">
-                  ${(parseFloat(sellingPrice || 0) * quantity).toFixed(2)}
+                  {(parseFloat(sellingPrice || 0) * quantity).toFixed(2)} DZD
                 </span>
               </div>
             )}
@@ -298,10 +295,10 @@ export default function QuickSalesClient({ history: initialHistory, products }) 
             <button
               type="submit"
               disabled={isPending || !batchId || (isSerialised && loadingSerials)}
-              className="w-full py-2.5 bg-pink-600 text-white rounded-lg hover:bg-pink-700 font-medium disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 bg-pink-600 text-white rounded-lg hover:bg-pink-700 font-semibold disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
             >
               {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
-              Complete Sale (Cash Received)
+              Valider la Vente (Espèces)
             </button>
           </form>
         </div>
@@ -311,72 +308,72 @@ export default function QuickSalesClient({ history: initialHistory, products }) 
       <div className="lg:col-span-7 space-y-4">
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-5 h-full min-h-[500px]">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-5 border-b border-gray-100 pb-4">
-            <h2 className="font-bold text-gray-900">12-Month Ledger & Returns</h2>
+            <h2 className="font-bold text-gray-900">Historique & Retours (12 mois)</h2>
             <form onSubmit={handleSearch} className="flex gap-2 w-full sm:w-auto">
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Product name or Serial..."
-                className="w-full sm:w-64 px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-2 focus:ring-pink-500 outline-none"
+                placeholder="Produit ou N/S..."
+                className="w-full sm:w-64 px-3 py-1.5 border border-gray-300 rounded-md text-sm text-gray-900 focus:ring-2 focus:ring-pink-500 outline-none"
               />
               <button
                 type="submit"
                 disabled={isPending}
-                className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-md hover:bg-gray-200 text-sm font-medium"
+                className="px-3 py-1.5 bg-gray-100 text-gray-800 rounded-md hover:bg-gray-200 text-sm font-medium"
               >
-                Search
+                Rechercher
               </button>
             </form>
           </div>
 
           {history.length === 0 ? (
-            <div className="flex flex-col items-center justify-center text-gray-400 py-20">
-              <Package className="w-10 h-10 mb-2 opacity-50" />
-              <p className="text-sm">No direct sales found.</p>
+            <div className="flex flex-col items-center justify-center text-gray-500 py-20">
+              <Package className="w-10 h-10 mb-2 text-gray-300" />
+              <p className="text-sm font-medium">Aucune vente directe trouvée.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm text-left whitespace-nowrap">
-                <thead className="bg-gray-50 text-gray-600 border-b border-gray-200">
+                <thead className="bg-gray-50 text-gray-700 border-b border-gray-200">
                   <tr>
                     <th className="px-4 py-3 font-semibold">Date</th>
-                    <th className="px-4 py-3 font-semibold">Product</th>
-                    <th className="px-4 py-3 font-semibold text-right">Qty</th>
-                    <th className="px-4 py-3 font-semibold text-right">Total</th>
+                    <th className="px-4 py-3 font-semibold">Produit</th>
+                    <th className="px-4 py-3 font-semibold text-right">Qté</th>
+                    <th className="px-4 py-3 font-semibold text-right">Montant</th>
                     <th className="px-4 py-3 font-semibold text-right">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {history.map((sale) => (
                     <tr key={sale.id} className="hover:bg-gray-50/50">
-                      <td className="px-4 py-3 text-gray-500 text-xs">
+                      <td className="px-4 py-3 text-gray-700 text-xs font-medium">
                         {new Date(sale.saleDate).toLocaleString()}
                       </td>
                       <td className="px-4 py-3">
                         <div className="font-medium text-gray-900">{sale.batch.product.name}</div>
                         {sale.soldSerials.length > 0 && (
-                          <div className="text-[10px] text-gray-400 font-mono mt-0.5">
-                            SN: {sale.soldSerials.join(", ")}
+                          <div className="text-[10px] text-gray-600 font-mono mt-0.5">
+                            N/S: {sale.soldSerials.join(", ")}
                           </div>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-right">{sale.quantity}</td>
+                      <td className="px-4 py-3 text-right font-medium text-gray-900">{sale.quantity}</td>
                       <td className="px-4 py-3 text-right font-semibold text-gray-900">
-                        ${parseFloat(sale.totalAmount).toFixed(2)}
+                        {parseFloat(sale.totalAmount).toFixed(2)} DZD
                       </td>
                       <td className="px-4 py-3 text-right">
                         <button
                           onClick={() => handleReturn(sale.id)}
                           disabled={returningId === sale.id}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-md text-xs font-medium transition-colors disabled:opacity-50"
+                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 rounded-md text-xs font-medium transition-colors disabled:opacity-50"
                         >
                           {returningId === sale.id ? (
                             <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           ) : (
                             <RotateCcw className="w-3.5 h-3.5" />
                           )}
-                          Return
+                          Retourner
                         </button>
                       </td>
                     </tr>

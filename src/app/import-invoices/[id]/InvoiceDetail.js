@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import AddLineModal from "./AddLineModal";
+import ScanSerialRemoval from "@/components/ui/ScanSerialRemoval";
 import {
   lockInvoiceHeader,
   updateInvoiceLine,
@@ -146,15 +147,15 @@ export default function InvoiceDetail({ invoice, products }) {
 
   // ── Delete line ───────────────────────────────────────────────────────────
   const handleDeleteLine = async (line) => {
-    let msg = "Delete this line? This will remove it from inventory if the invoice is locked.";
+    let msg = "Supprimer cette ligne ? Elle sera retirée du stock si la facture est verrouillée.";
     if (line.isSerialised && line.serialNumbers?.length > 0) {
-      msg += `\n\nWARNING: This will delete ALL ${line.serialNumbers.length} associated serial number(s)!\nSerials: ${line.serialNumbers.map(s => s.serial).join(', ')}`;
+      msg += `\n\nATTENTION : Cela supprimera TOUS les ${line.serialNumbers.length} numéro(s) de série associés !\nN/S : ${line.serialNumbers.map(s => s.serial).join(', ')}`;
     }
     if (!confirm(msg)) return;
     setDeletingLineId(line.id);
     const result = await deleteInvoiceLine(line.id);
     if (result.success) {
-      showFeedback("Line deleted.");
+      showFeedback("Ligne supprimée.");
       router.refresh();
     } else {
       showFeedback(result.message, true);
@@ -171,7 +172,7 @@ export default function InvoiceDetail({ invoice, products }) {
       amountPaid: parseFloat(footerValues.amountPaid) || 0,
     });
     if (result.success) {
-      showFeedback("Invoice footer saved. Supplier debt updated.");
+      showFeedback("Données de facture enregistrées. Dette fournisseur mise à jour.");
       router.refresh();
     } else {
       showFeedback(result.message, true);
@@ -204,10 +205,10 @@ export default function InvoiceDetail({ invoice, products }) {
             </Link>
             <div>
               <h1 className="text-2xl font-bold text-gray-900 tracking-tight flex items-center gap-2">
-                Invoice <span className="text-emerald-700">{invoice.invoiceNumber}</span>
+                Facture d'Achat <span className="text-emerald-700">{invoice.invoiceNumber}</span>
               </h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Manage products, serials, and supplier costs
+              <p className="text-sm text-gray-700 font-medium mt-1">
+                Gérer les produits, N/S et les coûts fournisseur
               </p>
             </div>
           </div>
@@ -230,7 +231,7 @@ export default function InvoiceDetail({ invoice, products }) {
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Invoice #</span>
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">Facture N°</span>
                 <span className="font-mono text-lg font-bold text-gray-900">{invoice.invoiceNumber}</span>
                 <span
                   className={`px-2.5 py-0.5 rounded-full text-xs font-semibold border ${STATUS_STYLES[invoice.status] || "bg-gray-100 text-gray-600"
@@ -241,12 +242,12 @@ export default function InvoiceDetail({ invoice, products }) {
               </div>
               <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
                 <div>
-                  <span className="text-gray-400">Supplier: </span>
-                  <span className="font-medium text-gray-800">{invoice.supplier.name}</span>
+                  <span className="text-gray-600 font-medium">Fournisseur : </span>
+                  <span className="font-semibold text-gray-900">{invoice.supplier.name}</span>
                 </div>
                 <div>
-                  <span className="text-gray-400">Date: </span>
-                  <span className="font-medium text-gray-800">
+                  <span className="text-gray-600 font-medium">Date : </span>
+                  <span className="font-semibold text-gray-900">
                     {new Date(invoice.invoiceDate).toLocaleDateString()}
                   </span>
                 </div>
@@ -258,31 +259,31 @@ export default function InvoiceDetail({ invoice, products }) {
         {/* ── INVOICE LINES ────────────────────────────────────────── */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
           <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900">Products</h2>
+            <h2 className="font-semibold text-gray-900">Produits Achetés</h2>
             <button
               onClick={() => setShowAddLine(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-medium"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-colors text-sm font-semibold"
             >
-              <Plus className="w-4 h-4" /> Add Product
+              <Plus className="w-4 h-4" /> Ajouter un Produit
             </button>
           </div>
 
           {invoice.lines.length === 0 ? (
             <div className="flex flex-col items-center justify-center p-10 text-gray-400">
               <Package className="w-10 h-10 mb-2 text-gray-200" />
-              <p className="text-sm">No products added yet.</p>
+              <p className="text-sm">Aucun produit ajouté.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm whitespace-nowrap">
                 <thead className="bg-gray-50 text-gray-600 border-b border-gray-100 text-left">
                   <tr>
-                    <th className="px-5 py-3 font-semibold">Product</th>
-                    <th className="px-4 py-3 font-semibold text-right">Qty</th>
-                    <th className="px-4 py-3 font-semibold text-right">Purchase $</th>
-                    <th className="px-4 py-3 font-semibold text-right">Retail $</th>
-                    <th className="px-4 py-3 font-semibold text-right">Subtotal</th>
-                    <th className="px-4 py-3 font-semibold text-center">Status</th>
+                    <th className="px-5 py-3 font-semibold">Produit</th>
+                    <th className="px-4 py-3 font-semibold text-right">Qté</th>
+                    <th className="px-4 py-3 font-semibold text-right">P. Achat (DZD)</th>
+                    <th className="px-4 py-3 font-semibold text-right">P. Vente (DZD)</th>
+                    <th className="px-4 py-3 font-semibold text-right">Sous-total</th>
+                    <th className="px-4 py-3 font-semibold text-center">Statut</th>
                     <th className="px-4 py-3 font-semibold text-right">Actions</th>
                   </tr>
                 </thead>
@@ -291,11 +292,7 @@ export default function InvoiceDetail({ invoice, products }) {
                     const isEditing = editingLineId === line.id;
                     const subtotal = parseFloat(line.purchasePrice) * line.quantity;
                     const hasSales = (line.quantitySold ?? 0) > 0;
-                    // Row is "partially sold" — not fully locked, but some fields are read-only
                     const isFullyLocked = line.isLocked;
-
-                    // In edit mode, compute current delta
-                    const editDelta = isEditing ? (Number(lineEdits.quantity) - line.quantity) : 0;
 
                     return (
                       <tr
@@ -319,7 +316,7 @@ export default function InvoiceDetail({ invoice, products }) {
                             )}
                           </div>
                           {hasSales && (
-                            <p className="text-xs text-blue-600 mt-0.5">{line.quantitySold} unit(s) sold</p>
+                            <p className="text-xs text-blue-700 font-medium mt-0.5">{line.quantitySold} unité(s) vendue(s)</p>
                           )}
                         </td>
 
@@ -343,10 +340,9 @@ export default function InvoiceDetail({ invoice, products }) {
                         <td className="px-4 py-3 text-right">
                           {isEditing ? (
                             hasSales ? (
-                              // Read-only — units have been sold
-                              <div className="flex items-center gap-1 justify-end text-gray-500">
-                                <span>${parseFloat(line.purchasePrice).toFixed(2)}</span>
-                                <Lock className="w-3 h-3 text-blue-400" title="Locked: units sold" />
+                              <div className="flex items-center gap-1 justify-end text-gray-600 font-medium">
+                                <span>{parseFloat(line.purchasePrice).toFixed(2)} DZD</span>
+                                <Lock className="w-3 h-3 text-blue-400" title="Verrouillé : unités vendues" />
                               </div>
                             ) : (
                               <input
@@ -359,10 +355,9 @@ export default function InvoiceDetail({ invoice, products }) {
                               />
                             )
                           ) : (
-                            <span>
-                              ${parseFloat(line.purchasePrice).toFixed(2)}
+                            <span>{parseFloat(line.purchasePrice).toFixed(2)} DZD
                               {hasSales && (
-                                <Lock className="inline w-3 h-3 ml-1 text-blue-400" title="Locked: units sold" />
+                                <Lock className="inline w-3 h-3 ml-1 text-blue-400" title="Verrouillé : unités vendues" />
                               )}
                             </span>
                           )}
@@ -380,27 +375,27 @@ export default function InvoiceDetail({ invoice, products }) {
                               className="w-24 px-2 py-1 border border-gray-300 rounded text-sm text-right focus:ring-2 focus:ring-emerald-400 focus:outline-none"
                             />
                           ) : (
-                            <span>${parseFloat(line.retailPrice).toFixed(2)}</span>
+                            <span>{parseFloat(line.retailPrice).toFixed(2)} DZD</span>
                           )}
                         </td>
 
                         <td className="px-4 py-3 text-right font-medium">
-                          ${subtotal.toFixed(2)}
+                          {(parseFloat(line.purchasePrice) * line.quantity).toFixed(2)} DZD
                         </td>
 
                         {/* Lock status badge */}
                         <td className="px-4 py-3 text-center">
                           {isFullyLocked ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-full text-xs font-medium">
-                              <Lock className="w-3 h-3" /> Locked
+                              <Lock className="w-3 h-3" /> Verrouillé
                             </span>
                           ) : hasSales ? (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-100 text-blue-600 rounded-full text-xs font-medium">
-                              <Lock className="w-3 h-3" /> Partial
+                              <Lock className="w-3 h-3" /> Partiel
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full text-xs">
-                              <Unlock className="w-3 h-3" /> Open
+                              <Unlock className="w-3 h-3" /> Ouvert
                             </span>
                           )}
                         </td>
@@ -414,7 +409,7 @@ export default function InvoiceDetail({ invoice, products }) {
                                   onClick={() => handleSaveLine(line)}
                                   disabled={savingLineId === line.id}
                                   className="p-1.5 text-emerald-600 hover:bg-emerald-50 rounded transition-colors disabled:opacity-50"
-                                  title="Save"
+                                  title="Enregistrer"
                                 >
                                   {savingLineId === line.id ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -425,26 +420,25 @@ export default function InvoiceDetail({ invoice, products }) {
                                 <button
                                   onClick={() => { setEditingLineId(null); setSerialMode(null); }}
                                   className="p-1.5 text-gray-400 hover:bg-gray-100 rounded transition-colors"
-                                  title="Cancel"
+                                  title="Annuler"
                                 >
                                   <X className="w-4 h-4" />
                                 </button>
                               </>
                             ) : (
                               <>
-                                {/* Edit allowed for all rows, rules enforced on save */}
                                 <button
                                   onClick={() => startEditLine(line)}
                                   className="p-1.5 text-blue-500 hover:bg-blue-50 rounded transition-colors text-xs font-medium flex items-center gap-1"
-                                  title="Edit"
+                                  title="Modifier"
                                 >
-                                  <Edit className="w-3.5 h-3.5" /> Edit
+                                  <Edit className="w-3.5 h-3.5" /> Modifier
                                 </button>
                                 <button
                                   onClick={() => handleDeleteLine(line)}
                                   disabled={isFullyLocked || deletingLineId === line.id}
                                   className="p-1.5 text-red-500 hover:bg-red-50 rounded transition-colors disabled:opacity-30"
-                                  title={isFullyLocked ? "Cannot delete locked row" : "Delete"}
+                                  title={isFullyLocked ? "Impossible de supprimer une ligne verrouillée" : "Supprimer"}
                                 >
                                   {deletingLineId === line.id ? (
                                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -476,7 +470,7 @@ export default function InvoiceDetail({ invoice, products }) {
               <div className="bg-white rounded-xl shadow-sm border border-blue-200 p-5 space-y-3">
                 <div className="flex items-center gap-2 text-blue-700 font-semibold text-sm">
                   <ScanLine className="w-4 h-4" />
-                  Enter {delta} New Serial Number{delta > 1 ? "s" : ""} for Added Unit{delta > 1 ? "s" : ""}
+                  Entrez {delta} nouveau(x) N/S
                 </div>
                 <div className="space-y-1.5 max-h-48 overflow-y-auto">
                   {serialInputs.map((val, i) => (
@@ -490,7 +484,7 @@ export default function InvoiceDetail({ invoice, products }) {
                           next[i] = e.target.value;
                           setSerialInputs(next);
                         }}
-                        placeholder={`New Serial #${i + 1}`}
+                        placeholder={`N/S #${i + 1}`}
                         className={`flex-1 px-3 py-2 border rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 ${
                           val.trim() ? "border-blue-300 bg-blue-50" : "border-gray-300"
                         }`}
@@ -498,64 +492,26 @@ export default function InvoiceDetail({ invoice, products }) {
                     </div>
                   ))}
                 </div>
-                <p className="text-xs text-gray-400">These serials will be added to the inventory pool for this batch.</p>
               </div>
             );
           }
 
           if (serialMode === "remove" && delta < 0) {
             const removeCount = Math.abs(delta);
-            // Show all unsold serials for this line so user can pick which to remove
-            const unsoldSerials = (line.serialNumbers || []).filter((sn) => !sn.isSold && !sn.isReturned);
+            const unsoldSerials = (line.serialNumbers || []).filter((sn) => !sn.isSold && !sn.isReturned).map(s => s.serial);
 
             return (
-              <div className="bg-white rounded-xl shadow-sm border border-amber-200 p-5 space-y-3">
-                <div className="flex items-center gap-2 text-amber-700 font-semibold text-sm">
-                  <AlertTriangle className="w-4 h-4" />
-                  Select {removeCount} Serial Number{removeCount > 1 ? "s" : ""} to Remove
-                </div>
-                <p className="text-xs text-gray-500">
-                  Choose exactly {removeCount} unsold serial(s) to permanently remove from inventory.
-                  ({removeSerials.length}/{removeCount} selected)
-                </p>
-                <div className="space-y-1.5 max-h-48 overflow-y-auto">
-                  {unsoldSerials.length === 0 ? (
-                    <p className="text-sm text-gray-400 italic">No unsold serials available to remove.</p>
-                  ) : (
-                    unsoldSerials.map((sn) => {
-                      const isSelected = removeSerials.includes(sn.serial);
-                      const isDisabled = !isSelected && removeSerials.length >= removeCount;
-                      return (
-                        <label
-                          key={sn.id}
-                          className={`flex items-center gap-3 px-3 py-2 rounded-lg border cursor-pointer transition-colors ${
-                            isSelected
-                              ? "border-amber-300 bg-amber-50"
-                              : isDisabled
-                              ? "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
-                              : "border-gray-200 hover:bg-gray-50"
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            disabled={isDisabled}
-                            onChange={() => {
-                              setRemoveSerials((prev) =>
-                                isSelected
-                                  ? prev.filter((s) => s !== sn.serial)
-                                  : [...prev, sn.serial]
-                              );
-                            }}
-                            className="w-4 h-4"
-                          />
-                          <span className="font-mono text-sm">{sn.serial}</span>
-                        </label>
-                      );
-                    })
-                  )}
-                </div>
-              </div>
+              <ScanSerialRemoval 
+                originalSerials={unsoldSerials}
+                selectedToRemove={removeSerials}
+                onToggleRemove={(sn, remove) => {
+                  setRemoveSerials(prev => remove 
+                    ? [...prev, sn] 
+                    : prev.filter(s => s !== sn)
+                  );
+                }}
+                targetRemovalCount={removeCount}
+              />
             );
           }
 
@@ -564,12 +520,12 @@ export default function InvoiceDetail({ invoice, products }) {
 
         {/* ── FOOTER / AMOUNTS ─────────────────────────────────────── */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-5">
-          <h2 className="font-semibold text-gray-900 mb-4">Amounts & Costs</h2>
+          <h2 className="font-semibold text-gray-900 mb-4">Montants &amp; Coûts</h2>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Transportation / Loading Cost
+                Frais de transport / Chargement
               </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -589,7 +545,7 @@ export default function InvoiceDetail({ invoice, products }) {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Amount Paid (Cash to Supplier)
+                Montant Payé (Espèces au fournisseur)
               </label>
               <div className="relative">
                 <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -611,29 +567,29 @@ export default function InvoiceDetail({ invoice, products }) {
 
           {/* Computed summary */}
           <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm border border-gray-100 mb-4">
-            <div className="flex justify-between text-gray-600">
-              <span>Lines Subtotal:</span>
-              <span className="font-medium">${linesTotal.toFixed(2)}</span>
+            <div className="flex justify-between text-gray-700 font-medium">
+              <span>Sous-total lignes :</span>
+              <span className="font-semibold">{linesTotal.toFixed(2)} DZD</span>
             </div>
-            <div className="flex justify-between text-gray-600">
-              <span>Transportation Cost:</span>
-              <span className="font-medium">
-                + ${parseFloat(footerValues.transportationCost || 0).toFixed(2)}
+            <div className="flex justify-between text-gray-700 font-medium">
+              <span>Frais de transport :</span>
+              <span className="font-semibold">
+                + {parseFloat(footerValues.transportationCost || 0).toFixed(2)} DZD
               </span>
             </div>
             <div className="flex justify-between font-bold text-gray-900 border-t border-gray-200 pt-2">
-              <span>Invoice Total:</span>
-              <span>${computedTotal.toFixed(2)}</span>
+              <span>Total Facture :</span>
+              <span>{computedTotal.toFixed(2)} DZD</span>
             </div>
-            <div className="flex justify-between text-gray-600">
-              <span>Amount Paid:</span>
-              <span className="text-green-600 font-medium">
-                - ${parseFloat(footerValues.amountPaid || 0).toFixed(2)}
+            <div className="flex justify-between text-gray-700 font-medium">
+              <span>Montant Payé :</span>
+              <span className="text-green-700 font-semibold">
+                - {parseFloat(footerValues.amountPaid || 0).toFixed(2)} DZD
               </span>
             </div>
             <div className="flex justify-between font-bold text-red-600 border-t border-gray-200 pt-2">
-              <span>Remaining Debt:</span>
-              <span>${computedDebt.toFixed(2)}</span>
+              <span>Reste Dû (Fournisseur) :</span>
+              <span>{computedDebt.toFixed(2)} DZD</span>
             </div>
           </div>
 
@@ -643,7 +599,7 @@ export default function InvoiceDetail({ invoice, products }) {
             className="flex items-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors text-sm font-medium"
           >
             {savingFooter ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            Save Amounts & Sync Supplier Debt
+            Enregistrer &amp; Synchroniser la Dette Fournisseur
           </button>
         </div>
       </div>

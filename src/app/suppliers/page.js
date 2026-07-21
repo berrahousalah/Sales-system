@@ -5,8 +5,8 @@ import SupplierForm from "./components/SupplierForm";
 import { Users, ArrowLeft } from "lucide-react";
 
 export const metadata = {
-  title: "Suppliers Management | ERP System",
-  description: "Manage supplier profiles and outstanding debts.",
+  title: "Gestion des Fournisseurs | ERP TechnoLink",
+  description: "Gérer les fournisseurs et suivre les dettes d'achat.",
 };
 
 export default async function SuppliersPage() {
@@ -29,8 +29,8 @@ export default async function SuppliersPage() {
               <Users className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Suppliers Management</h1>
-              <p className="text-sm text-gray-500 mt-1">Manage supplier profiles and track aggregate debts</p>
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Gestion des Fournisseurs</h1>
+              <p className="text-sm text-gray-700 font-medium mt-1">Gérer les profils fournisseurs et les dettes cumulatives</p>
             </div>
           </div>
           
@@ -42,8 +42,8 @@ export default async function SuppliersPage() {
         {/* Global Error Banner if DB fetch failed */}
         {!result.success && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
-            <span className="font-semibold text-sm">Failed to load suppliers:</span> 
-            <span className="text-sm">{result.message}</span>
+            <span className="font-semibold text-sm">Erreur lors du chargement des fournisseurs :</span> 
+            <span className="text-sm font-medium">{result.message}</span>
           </div>
         )}
 

@@ -13,7 +13,7 @@ export default function ProductsTable({ initialProducts }) {
   const router = useRouter();
 
   const handleDelete = async (productId) => {
-    if (!confirm("Are you sure you want to delete this product?")) return;
+    if (!confirm("Voulez-vous vraiment supprimer ce produit ?")) return;
     
     setDeletingId(productId);
     setDeleteError("");
@@ -39,9 +39,9 @@ export default function ProductsTable({ initialProducts }) {
         <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mb-4">
           <Package className="w-8 h-8 text-blue-500" />
         </div>
-        <h3 className="text-lg font-medium text-gray-900 mb-1">No products found</h3>
-        <p className="text-gray-500 text-center max-w-sm">
-          Get started by creating your first product. It will act as the single source of truth for your inventory.
+        <h3 className="text-lg font-medium text-gray-900 mb-1">Aucun produit trouvé</h3>
+        <p className="text-gray-700 font-medium text-center max-w-sm">
+          Commencez par créer votre premier produit. Il servira de base pour tout votre inventaire.
         </p>
       </div>
     );
@@ -59,8 +59,8 @@ export default function ProductsTable({ initialProducts }) {
           <table className="w-full text-left text-sm whitespace-nowrap">
             <thead className="bg-gray-50 text-gray-700 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-4 font-semibold">Product Name</th>
-                <th className="px-6 py-4 font-semibold text-right">Total Stock Balance</th>
+                <th className="px-6 py-4 font-semibold">Nom du Produit</th>
+                <th className="px-6 py-4 font-semibold text-right">Stock Total Disponible</th>
                 <th className="px-6 py-4 font-semibold text-right">Actions</th>
               </tr>
             </thead>
@@ -79,7 +79,7 @@ export default function ProductsTable({ initialProducts }) {
                     <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${
                       product.stockBalance > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
                     }`}>
-                      {product.stockBalance} in stock
+                      {product.stockBalance} en stock
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
@@ -87,7 +87,7 @@ export default function ProductsTable({ initialProducts }) {
                       <button
                         onClick={() => setSelectedProduct(product)}
                         className="p-2 text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                        title="Product Details"
+                        title="Détails du Produit"
                       >
                         <Info className="w-4 h-4" />
                       </button>
@@ -95,7 +95,7 @@ export default function ProductsTable({ initialProducts }) {
                         onClick={() => handleDelete(product.id)}
                         disabled={deletingId === product.id}
                         className="p-2 text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
-                        title="Delete Product"
+                        title="Supprimer le Produit"
                       >
                         {deletingId === product.id ? (
                           <Loader2 className="w-4 h-4 animate-spin" />

@@ -4,8 +4,8 @@ import FinancialsClient from "./FinancialsClient";
 import { Landmark, ArrowLeft } from "lucide-react";
 
 export const metadata = {
-  title: "Financials & Reports | ERP System",
-  description: "Enterprise dynamic real-time reporting and immutable month-end closures.",
+  title: "Finances & Rapports | ERP TechnoLink",
+  description: "Rapports en temps réel et clôtures comptables mensuelles.",
 };
 
 export default async function FinancialsPage() {
@@ -26,9 +26,9 @@ export default async function FinancialsPage() {
               <Landmark className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Financials & Reports</h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Dynamic real-time aggregates and immutable month-end accounting closures.
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Finances & Rapports</h1>
+              <p className="text-sm text-gray-700 font-medium mt-1">
+                Agrégats en temps réel et clôtures de fin de mois immuables.
               </p>
             </div>
           </div>
@@ -36,7 +36,7 @@ export default async function FinancialsPage() {
 
         {!archiveResult.success && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-            <span className="font-semibold">Error loading financial archives.</span> Please try refreshing.
+            <span className="font-semibold">Erreur de chargement des archives financières.</span> Veuillez actualiser.
           </div>
         )}
 

@@ -4,8 +4,8 @@ import InventoryAdjustmentsClient from "./InventoryAdjustmentsClient";
 import { SlidersHorizontal, ArrowLeft } from "lucide-react";
 
 export const metadata = {
-  title: "Inventory Adjustments | ERP System",
-  description: "Write off inventory discrepancies and log operating losses.",
+  title: "Ajustements de Stock | ERP TechnoLink",
+  description: "Enregistrer les écarts d'inventaire et les pertes.",
 };
 
 export default async function InventoryAdjustmentsPage() {
@@ -31,9 +31,9 @@ export default async function InventoryAdjustmentsPage() {
               <SlidersHorizontal className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Inventory Adjustments</h1>
-              <p className="text-sm text-gray-500 mt-1">
-                Reconcile physical stock discrepancies and log operational losses.
+              <h1 className="text-2xl font-bold text-gray-900 tracking-tight">Ajustements de Stock</h1>
+              <p className="text-sm text-gray-700 font-medium mt-1">
+                Réconcilier les écarts physiques et consigner les pertes opérationnelles.
               </p>
             </div>
           </div>
@@ -41,7 +41,7 @@ export default async function InventoryAdjustmentsPage() {
 
         {(!historyResult.success || !productsResult.success) && (
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-            <span className="font-semibold">Error loading data.</span> Please try refreshing.
+            <span className="font-semibold">Erreur de chargement.</span> Veuillez actualiser.
           </div>
         )}
 
