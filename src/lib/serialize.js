@@ -176,6 +176,9 @@ export function serializeQuickSale(qs) {
           product: qs.batch.product
             ? { id: qs.batch.product.id, name: qs.batch.product.name }
             : undefined,
+          importInvoiceLine: qs.batch.importInvoiceLine
+            ? { isSerialised: qs.batch.importInvoiceLine.isSerialised }
+            : undefined,
         }
       : undefined,
   };

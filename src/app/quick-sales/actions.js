@@ -203,6 +203,95 @@ export async function returnQuickSale(saleId) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// EDIT QUICK SALE
+// ─────────────────────────────────────────────────────────────────────────────
+
+export async function editQuickSale(data) {
+  try {
+    const { saleId, quantity, sellingPrice, soldSerials } = data;
+    
+    if (quantity <= 0) throw new Error("Quantity must be greater than zero.");
+    
+    await prisma.$transaction(async (tx) => {
+      const sale = await tx.quickSale.findUnique({
+        where: { id: saleId },
+        include: { batch: { include: { importInvoiceLine: true } } },
+      });
+      if (!sale) throw new Error("Quick sale not found.");
+      if (sale.isReturned) throw new Error("Cannot edit a returned sale.");
+
+      const oldQty = sale.quantity;
+      const delta = quantity - oldQty;
+      const batch = sale.batch;
+
+      if (delta > 0) {
+        throw new Error("Cannot increase quantity of an existing quick sale. Please ring up a new sale.");
+      }
+
+      // Handle serial numbers
+      if (batch.importInvoiceLine?.isSerialised && delta < 0) {
+        let oldSerialsList = [];
+        if (typeof sale.soldSerials === 'string') {
+          try { oldSerialsList = JSON.parse(sale.soldSerials); } 
+          catch (e) { oldSerialsList = sale.soldSerials ? [sale.soldSerials] : []; }
+        } else if (Array.isArray(sale.soldSerials)) {
+          oldSerialsList = sale.soldSerials;
+        }
+
+        const serialsToReturn = oldSerialsList.filter(s => !soldSerials.includes(s));
+        if (serialsToReturn.length !== Math.abs(delta)) {
+          throw new Error(`Please select exactly ${Math.abs(delta)} serial number(s) to remove.`);
+        }
+        
+        if (serialsToReturn.length > 0) {
+          await tx.serialNumber.updateMany({
+            where: { serial: { in: serialsToReturn } },
+            data: { isSold: false },
+          });
+        }
+      }
+
+      if (delta < 0) {
+        const absDelta = Math.abs(delta);
+        await tx.batch.update({
+          where: { id: batch.id },
+          data: { quantityRemaining: { increment: absDelta } },
+        });
+        await tx.product.update({
+          where: { id: batch.productId },
+          data: { stockBalance: { increment: absDelta } },
+        });
+        await tx.importInvoiceLine.update({
+          where: { id: batch.importInvoiceLineId },
+          data: { quantitySold: { decrement: absDelta } },
+        });
+        
+        await checkAndUnlockBatchRow(tx, batch.id);
+      }
+
+      const safeSellingPrice = parseFloat(sellingPrice) || 0;
+      const totalAmount = quantity * safeSellingPrice;
+
+      await tx.quickSale.update({
+        where: { id: saleId },
+        data: {
+          quantity,
+          sellingPrice: safeSellingPrice,
+          totalAmount,
+          soldSerials: batch.importInvoiceLine?.isSerialised ? JSON.stringify(soldSerials) : "",
+        },
+      });
+    });
+
+    revalidatePath("/quick-sales");
+    return { success: true, message: "Sale updated successfully." };
+  } catch (error) {
+    console.error("editQuickSale error:", error);
+    return { success: false, message: error.message || "Failed to update sale." };
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // QUERY HISTORY (Last 12 months)
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -216,7 +305,7 @@ export async function getQuickSalesHistory() {
         isReturned: false,
         saleDate: { gte: twelveMonthsAgo },
       },
-      include: { batch: { include: { product: true } } },
+      include: { batch: { include: { product: true, importInvoiceLine: true } } },
       orderBy: { saleDate: "desc" },
     });
     return { success: true, sales: sales.map(serializeQuickSale) };
@@ -244,7 +333,7 @@ export async function searchQuickSales(query) {
           { soldSerials: { contains: term } },
         ],
       },
-      include: { batch: { include: { product: true } } },
+      include: { batch: { include: { product: true, importInvoiceLine: true } } },
       orderBy: { saleDate: "desc" },
     });
     return { success: true, sales: sales.map(serializeQuickSale) };

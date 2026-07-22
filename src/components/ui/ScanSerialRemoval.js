@@ -1,15 +1,21 @@
-import { useState, useRef } from "react";
-import { ScanLine, X, CheckCircle } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { ScanLine, X, CheckCircle, AlertCircle } from "lucide-react";
 
 export default function ScanSerialRemoval({ originalSerials, selectedToRemove, onToggleRemove, targetRemovalCount }) {
-  const [inputValue, setInputValue] = useState("");
+  // Maintain local state for each slot's input text
+  const [inputs, setInputs] = useState(Array(targetRemovalCount).fill(""));
   const [errorMsg, setErrorMsg] = useState("");
-  const inputRef = useRef(null);
+  const inputRefs = useRef([]);
 
-  const handleKeyDown = (e) => {
+  // Keep refs array in sync
+  useEffect(() => {
+    inputRefs.current = inputRefs.current.slice(0, targetRemovalCount);
+  }, [targetRemovalCount]);
+
+  const handleKeyDown = (e, index) => {
     if (e.key === "Enter") {
       e.preventDefault();
-      const val = inputValue.trim();
+      const val = inputs[index].trim();
       if (!val) return;
 
       setErrorMsg("");
@@ -32,64 +38,104 @@ export default function ScanSerialRemoval({ originalSerials, selectedToRemove, o
         return;
       }
 
-      // It's valid, select it for removal
+      // Valid, lock it in via parent
       onToggleRemove(val, true);
-      setInputValue("");
+
+      // Clear this slot's input
+      const newInputs = [...inputs];
+      newInputs[index] = "";
+      setInputs(newInputs);
+
+      // Focus next empty slot
+      const nextEmpty = Array.from({ length: targetRemovalCount }).findIndex(
+        (_, i) => !selectedToRemove[i] && i !== index
+      );
+      if (nextEmpty !== -1 && inputRefs.current[nextEmpty]) {
+        inputRefs.current[nextEmpty].focus();
+      }
     }
   };
 
+  const handleInputChange = (index, value) => {
+    const newInputs = [...inputs];
+    newInputs[index] = value;
+    setInputs(newInputs);
+  };
+
+  // We have exactly targetRemovalCount slots
+  const slots = Array.from({ length: targetRemovalCount });
+
   return (
-    <div className="mt-2 p-3 bg-white border border-indigo-200 rounded-md shadow-sm text-left min-w-[250px]">
-      <div className="flex justify-between items-end mb-2">
-        <p className="text-xs font-medium text-slate-800">
-          Scanner pour Retirer
-        </p>
-        <div className={`text-xs font-semibold px-2 py-0.5 rounded-full ${selectedToRemove.length === targetRemovalCount ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700"}`}>
+    <div className="mt-4 p-4 bg-white border border-indigo-200 rounded-lg shadow-sm text-left w-full">
+      <div className="flex justify-between items-center mb-4">
+        <h3 className="text-sm font-semibold text-slate-800">
+          Sélectionner les Numéros de Série à Retirer
+        </h3>
+        <div
+          className={`text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1 ${
+            selectedToRemove.length === targetRemovalCount
+              ? "bg-green-100 text-green-700 border border-green-200"
+              : "bg-amber-100 text-amber-700 border border-amber-200"
+          }`}
+        >
+          {selectedToRemove.length === targetRemovalCount && <CheckCircle className="w-3.5 h-3.5" />}
           Retiré(s): {selectedToRemove.length} / {targetRemovalCount}
         </div>
       </div>
 
-      <div className="relative mb-2">
-        <ScanLine className="absolute left-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-        <input
-          ref={inputRef}
-          type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="Scanner ou taper le N/S..."
-          disabled={selectedToRemove.length >= targetRemovalCount}
-          className="w-full pl-9 pr-3 py-1.5 border border-slate-300 rounded text-sm text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 outline-none disabled:bg-slate-50 disabled:opacity-75"
-        />
-      </div>
-
       {errorMsg && (
-        <p className="text-[10px] text-red-600 mb-2 font-medium">{errorMsg}</p>
+        <div className="flex items-center gap-1.5 p-2 mb-3 bg-red-50 border border-red-200 text-red-700 text-xs font-medium rounded-md">
+          <AlertCircle className="w-4 h-4" />
+          {errorMsg}
+        </div>
       )}
 
-      {selectedToRemove.length > 0 && (
-        <div className="max-h-24 overflow-y-auto space-y-1 mt-2 border-t pt-2">
-          {selectedToRemove.map(sn => (
-            <div key={sn} className="flex items-center justify-between p-1.5 bg-red-50 border border-red-100 rounded text-xs">
-              <span className="font-mono text-red-700 font-medium">{sn}</span>
-              <button 
-                onClick={(e) => { e.preventDefault(); onToggleRemove(sn, false); }}
-                className="text-red-500 hover:text-red-700 transition-colors"
-                title="Annuler le retrait"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+      <div className="space-y-3">
+        {slots.map((_, index) => {
+          // If the parent array has a locked serial at this index, show it locked
+          const lockedSerial = selectedToRemove[index];
+
+          return (
+            <div key={index} className="flex flex-col">
+              <label className="text-[11px] font-semibold text-slate-500 mb-1 tracking-wide uppercase">
+                Slot {index + 1} of {targetRemovalCount}
+              </label>
+
+              {lockedSerial ? (
+                <div className="flex items-center justify-between p-2.5 bg-red-50 border border-red-200 rounded-md text-sm shadow-sm transition-all">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-red-500" />
+                    <span className="font-mono text-red-700 font-medium">{lockedSerial}</span>
+                  </div>
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      onToggleRemove(lockedSerial, false);
+                    }}
+                    className="p-1 text-red-400 hover:text-red-600 hover:bg-red-100 rounded transition-colors"
+                    title="Annuler le retrait"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="relative">
+                  <ScanLine className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-indigo-400" />
+                  <input
+                    ref={(el) => (inputRefs.current[index] = el)}
+                    type="text"
+                    value={inputs[index] || ""}
+                    onChange={(e) => handleInputChange(index, e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(e, index)}
+                    placeholder="Scanner ou taper puis [Entrée]..."
+                    className="w-full pl-9 pr-3 py-2.5 border border-slate-300 rounded-md text-sm text-slate-900 font-medium focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none bg-slate-50 placeholder-slate-400 shadow-sm transition-all"
+                  />
+                </div>
+              )}
             </div>
-          ))}
-        </div>
-      )}
-      
-      {selectedToRemove.length === targetRemovalCount && (
-        <div className="text-[10px] text-green-600 flex items-center gap-1 mt-2 font-medium">
-          <CheckCircle className="w-3 h-3" />
-          Quantité atteinte
-        </div>
-      )}
+          );
+        })}
+      </div>
     </div>
   );
 }

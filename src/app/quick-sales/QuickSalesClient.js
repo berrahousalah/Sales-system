@@ -10,9 +10,12 @@ import {
   returnQuickSale,
   searchQuickSales,
   getAvailableBatchesForProduct,
-  getAvailableSerialsForBatch
+  getAvailableSerialsForBatch,
+  editQuickSale
 } from "./actions";
 import { Combobox } from "@/components/ui/Combobox";
+import ScanSerialRemoval from "@/components/ui/ScanSerialRemoval";
+import { Edit2, X } from "lucide-react";
 
 export default function QuickSalesClient({ history: initialHistory, products }) {
   const router = useRouter();
@@ -22,6 +25,12 @@ export default function QuickSalesClient({ history: initialHistory, products }) 
   const [history, setHistory] = useState(initialHistory);
   const [searchQuery, setSearchQuery] = useState("");
   const [returningId, setReturningId] = useState(null);
+
+  // Edit State
+  const [editingSale, setEditingSale] = useState(null);
+  const [editQty, setEditQty] = useState(1);
+  const [editPrice, setEditPrice] = useState("");
+  const [editSerialsToRemove, setEditSerialsToRemove] = useState([]);
 
   // New Sale State
   const [productId, setProductId] = useState("");
@@ -160,6 +169,49 @@ export default function QuickSalesClient({ history: initialHistory, products }) 
     setReturningId(null);
   };
 
+  // ── Edit Sale ──────────────────────────────────────────────────────────
+  const openEditModal = (sale) => {
+    setEditingSale(sale);
+    setEditQty(sale.quantity);
+    setEditPrice(parseFloat(sale.sellingPrice).toFixed(2));
+    setEditSerialsToRemove([]);
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    if (editQty <= 0) return showMsg("La quantité doit être supérieure à zéro.", true);
+    
+    const delta = editQty - editingSale.quantity;
+    if (delta > 0) return showMsg("Impossible d'augmenter la quantité. Veuillez créer une nouvelle vente.", true);
+
+    if (editingSale.batch.importInvoiceLine?.isSerialised && delta < 0) {
+      if (editSerialsToRemove.length !== Math.abs(delta)) {
+        return showMsg(`Veuillez sélectionner exactement ${Math.abs(delta)} N/S à retirer.`, true);
+      }
+    }
+
+    startTransition(async () => {
+      // old serials minus the ones we remove
+      const remainingSerials = (editingSale.soldSerials || []).filter(s => !editSerialsToRemove.includes(s));
+      const payload = {
+        saleId: editingSale.id,
+        quantity: editQty,
+        sellingPrice: parseFloat(editPrice),
+        soldSerials: remainingSerials,
+      };
+
+      const result = await editQuickSale(payload);
+      if (result.success) {
+        showMsg("Vente modifiée avec succès.");
+        setEditingSale(null);
+        searchQuickSales(searchQuery).then(r => r.success && setHistory(r.sales));
+        router.refresh();
+      } else {
+        showMsg(result.message, true);
+      }
+    });
+  };
+
   // ── Search History ──────────────────────────────────────────────────────
   const handleSearch = (e) => {
     e.preventDefault();
@@ -170,7 +222,8 @@ export default function QuickSalesClient({ history: initialHistory, products }) 
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
       
       {/* ── LEFT: NEW SALE POS ── */}
       <div className="lg:col-span-5 space-y-4">
@@ -363,18 +416,28 @@ export default function QuickSalesClient({ history: initialHistory, products }) 
                         {parseFloat(sale.totalAmount).toFixed(2)} DZD
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <button
-                          onClick={() => handleReturn(sale.id)}
-                          disabled={returningId === sale.id}
-                          className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 rounded-md text-xs font-medium transition-colors disabled:opacity-50"
-                        >
-                          {returningId === sale.id ? (
-                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                          ) : (
-                            <RotateCcw className="w-3.5 h-3.5" />
-                          )}
-                          Retourner
-                        </button>
+                        <div className="flex items-center justify-end gap-2">
+                          <button
+                            onClick={() => openEditModal(sale)}
+                            disabled={returningId === sale.id}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-md text-xs font-medium transition-colors disabled:opacity-50"
+                          >
+                            <Edit2 className="w-3.5 h-3.5" />
+                            Modifier
+                          </button>
+                          <button
+                            onClick={() => handleReturn(sale.id)}
+                            disabled={returningId === sale.id}
+                            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 bg-red-50 text-red-700 hover:bg-red-100 rounded-md text-xs font-medium transition-colors disabled:opacity-50"
+                          >
+                            {returningId === sale.id ? (
+                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                            ) : (
+                              <RotateCcw className="w-3.5 h-3.5" />
+                            )}
+                            Retourner
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -385,5 +448,86 @@ export default function QuickSalesClient({ history: initialHistory, products }) 
         </div>
       </div>
     </div>
+
+      {/* ── EDIT MODAL ── */}
+      {editingSale && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden">
+            <div className="flex justify-between items-center px-4 py-3 border-b">
+              <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                <Edit2 className="w-4 h-4 text-indigo-600" /> Modifier la Vente
+              </h3>
+              <button onClick={() => setEditingSale(null)} className="text-gray-400 hover:text-gray-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSubmit} className="p-4 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-800 mb-1">Produit</label>
+                <div className="text-sm font-medium text-gray-900 bg-gray-50 px-3 py-2 rounded-md border border-gray-100">
+                  {editingSale.batch.product.name}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-800 mb-1">Qté (Max: {editingSale.quantity})</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={editingSale.quantity}
+                    value={editQty}
+                    onChange={(e) => setEditQty(Math.min(editingSale.quantity, Math.max(1, parseInt(e.target.value) || 1)))}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 font-medium focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-800 mb-1">Prix de Vente</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={editPrice}
+                    onChange={(e) => setEditPrice(e.target.value)}
+                    required
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm text-gray-900 font-medium focus:ring-2 focus:ring-indigo-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Serial Reduction Handling */}
+              {editingSale.batch.importInvoiceLine?.isSerialised && editingSale.quantity - editQty > 0 && (
+                <ScanSerialRemoval
+                  originalSerials={editingSale.soldSerials}
+                  selectedToRemove={editSerialsToRemove}
+                  targetRemovalCount={editingSale.quantity - editQty}
+                  onToggleRemove={(sn, isAdd) => setEditSerialsToRemove(prev => isAdd ? [...prev, sn] : prev.filter(s => s !== sn))}
+                />
+              )}
+
+              <div className="pt-2 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingSale(null)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-md hover:bg-gray-200"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={isPending || (editingSale.batch.importInvoiceLine?.isSerialised && editingSale.quantity - editQty > 0 && editSerialsToRemove.length !== (editingSale.quantity - editQty))}
+                  className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 rounded-md hover:bg-indigo-700 disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+                  Enregistrer
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

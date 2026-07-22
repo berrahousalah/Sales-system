@@ -292,7 +292,12 @@ const UpdateLineSchema = z.object({
   retailPrice: z.number().positive(),
   // For serialised batches:
   //   removedSerials: serial numbers to REMOVE from inventory pool (length must equal abs(quantityDelta) when delta < 0)
-  removedSerials: z.array(z.string().trim().min(1)).optional().default([]),
+  removedSerials: z.preprocess((val) => {
+    if (typeof val === 'string') {
+      try { return JSON.parse(val); } catch (e) { return val ? [val] : []; }
+    }
+    return val;
+  }, z.array(z.string().trim().min(1)).optional().default([])),
 });
 
 export async function updateInvoiceLine(data) {

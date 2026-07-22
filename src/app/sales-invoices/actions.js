@@ -279,7 +279,12 @@ const UpdateSalesLineSchema = z.object({
   lineId: z.string().min(1),
   quantity: z.number().int().min(0),
   sellingPrice: z.number().positive(),
-  soldSerials: z.array(z.string()).optional().default([]),
+  soldSerials: z.preprocess((val) => {
+    if (typeof val === 'string') {
+      try { return JSON.parse(val); } catch (e) { return val ? [val] : []; }
+    }
+    return val;
+  }, z.array(z.string()).optional().default([])),
 });
 
 export async function updateSalesInvoiceLine(data) {
@@ -307,7 +312,17 @@ export async function updateSalesInvoiceLine(data) {
       // Handle serial numbers for delta
       if (batch.importInvoiceLine?.isSerialised && delta < 0) {
         // Returning serials — explicit user selection passed in `soldSerials` are those being RETAINED.
-        const oldSerialsList = typeof line.soldSerials === 'string' ? JSON.parse(line.soldSerials || '[]') : (line.soldSerials || []);
+        let oldSerialsList = [];
+        if (typeof line.soldSerials === 'string') {
+          try {
+            oldSerialsList = JSON.parse(line.soldSerials);
+          } catch (e) {
+            oldSerialsList = line.soldSerials ? [line.soldSerials] : [];
+          }
+        } else if (Array.isArray(line.soldSerials)) {
+          oldSerialsList = line.soldSerials;
+        }
+
         const returningSerials = oldSerialsList.filter(s => !soldSerials.includes(s));
 
         if (returningSerials.length !== Math.abs(delta)) {
