@@ -223,14 +223,19 @@ export async function getArchivedMonths() {
  * Checks if a specific date falls into a month that has already been closed.
  */
 export async function isMonthClosed(date) {
-  const d = new Date(date);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, "0");
-  const closingMonthId = `${year}-${month}`;
+  try {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const closingMonthId = `${year}-${month}`;
 
-  const report = await prisma.monthlyFinancialReport.findUnique({
-    where: { closingMonthId },
-  });
-  
-  return !!report;
+    const report = await prisma.monthlyFinancialReport.findUnique({
+      where: { closingMonthId },
+    });
+    
+    return !!report;
+  } catch (error) {
+    console.error("isMonthClosed check failed:", error);
+    return false;
+  }
 }

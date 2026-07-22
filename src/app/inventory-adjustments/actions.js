@@ -184,14 +184,10 @@ export async function executeInventoryAdjustment(data) {
         },
       });
 
-      return { adjustment };
     });
 
-    revalidatePath("/", "layout");
-    return { success: true,
-      message: "Inventory adjustment executed successfully. Financial loss logged.",
-      ...result,
-    };
+    revalidatePath("/inventory-adjustments");
+    return { success: true, message: "Ajustement effectué avec succès" };
   } catch (error) {
     console.error("executeInventoryAdjustment error:", error);
     return { success: false, message: error.message || "Failed to execute inventory adjustment." };

@@ -136,12 +136,17 @@ export async function executeQuickSale(data) {
 // ─────────────────────────────────────────────────────────────────────────────
 // RETURN QUICK SALE
 // ─────────────────────────────────────────────────────────────────────────────
+const ReturnQuickSaleSchema = z.string().min(1, "Sale ID is required");
 
 export async function returnQuickSale(saleId) {
   try {
+    const parsed = ReturnQuickSaleSchema.safeParse(saleId);
+    if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+    const validSaleId = parsed.data;
+
     await prisma.$transaction(async (tx) => {
       const sale = await tx.quickSale.findUnique({
-        where: { id: saleId },
+        where: { id: validSaleId },
         include: { batch: { include: { importInvoiceLine: true } } },
       });
       if (!sale) throw new Error("Sale record not found.");
@@ -205,12 +210,18 @@ export async function returnQuickSale(saleId) {
 // ─────────────────────────────────────────────────────────────────────────────
 // EDIT QUICK SALE
 // ─────────────────────────────────────────────────────────────────────────────
+const EditQuickSaleSchema = z.object({
+  saleId: z.string().min(1, "Sale ID is required"),
+  quantity: z.number().int().positive("Quantity must be greater than zero"),
+  sellingPrice: z.number().nonnegative("Selling price cannot be negative"),
+  soldSerials: z.array(z.string()).default([]),
+});
 
 export async function editQuickSale(data) {
   try {
-    const { saleId, quantity, sellingPrice, soldSerials } = data;
-    
-    if (quantity <= 0) throw new Error("Quantity must be greater than zero.");
+    const parsed = EditQuickSaleSchema.safeParse(data);
+    if (!parsed.success) throw new Error(parsed.error.errors[0].message);
+    const { saleId, quantity, sellingPrice, soldSerials } = parsed.data;
     
     await prisma.$transaction(async (tx) => {
       const sale = await tx.quickSale.findUnique({

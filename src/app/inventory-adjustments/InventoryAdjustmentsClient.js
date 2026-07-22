@@ -124,26 +124,29 @@ export default function InventoryAdjustmentsClient({ history: initialHistory, pr
     }
 
     startTransition(async () => {
-      const payload = {
-        batchId,
-        quantity: Number(quantity),
-        reason,
-        adjustedSerials: isSerialised ? serials.map((s) => s.trim()) : [],
-      };
-      
-      const result = await executeInventoryAdjustment(payload);
-      if (result.success) {
-        showMsg("Ajustement enregistré avec succès. Perte financière imputée.");
-        setProductId("");
-        setBatchId("");
-        setQuantity(1);
-        setReason("");
+      try {
+        const payload = {
+          batchId,
+          quantity: Number(quantity),
+          reason,
+          adjustedSerials: isSerialised ? serials.map((s) => s.trim()) : [],
+        };
         
-        // Optimistic refresh (in real app, refetching history via server action is better)
-        setHistory(prev => [result.adjustment, ...prev]);
-        router.refresh();
-      } else {
-        showMsg(result.message, true);
+        const result = await executeInventoryAdjustment(payload);
+        if (result.success) {
+          showMsg(result.message || "Ajustement enregistré avec succès.");
+          setProductId("");
+          setBatchId("");
+          setQuantity(1);
+          setReason("");
+          setSerials([""]);
+          router.refresh();
+        } else {
+          showMsg(result.message || "L'ajustement a échoué.", true);
+        }
+      } catch (err) {
+        console.error("Adjustment submit error:", err);
+        showMsg("Une erreur inattendue s'est produite.", true);
       }
     });
   };
